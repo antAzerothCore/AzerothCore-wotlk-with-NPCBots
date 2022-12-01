@@ -11734,6 +11734,7 @@ void Player::LearnCustomSpells()
 
 void Player::LearnDefaultSkills()
 {
+
     // learn default race/class skills
     PlayerInfo const* info = sObjectMgr->GetPlayerInfo(getRace(), getClass());
     for (PlayerCreateInfoSkills::const_iterator itr = info->skills.begin(); itr != info->skills.end(); ++itr)
@@ -11749,11 +11750,11 @@ void Player::LearnDefaultSkills()
 void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
 {
     SkillRaceClassInfoEntry const* rcInfo = GetSkillRaceClassInfo(skillId, getRace(), getClass());
-    if (!rcInfo)
-        return;
+    //if (!rcInfo)
+        //return;
 
     LOG_DEBUG("entities.player.loading", "PLAYER (Class: {} Race: {}): Adding initial skill, id = {}", uint32(getClass()), uint32(getRace()), skillId);
-    switch (GetSkillRangeType(rcInfo))
+    switch (GetSkillRangeType(rcInfo, skillId))
     {
         case SKILL_RANGE_LANGUAGE:
             SetSkill(skillId, 0, 300, 300);
@@ -11766,7 +11767,7 @@ void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
             {
                 skillValue = maxValue;
             }
-            else if (rcInfo->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE)
+            else if (rcInfo && rcInfo->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE)
             {
                 skillValue = maxValue;
             }
@@ -11784,6 +11785,7 @@ void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
             }
 
             SetSkill(skillId, 0, skillValue, maxValue);
+
             break;
         }
         case SKILL_RANGE_MONO:
@@ -11791,7 +11793,7 @@ void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
             break;
         case SKILL_RANGE_RANK:
         {
-            if (!rank)
+            if (!rank || !rcInfo)
             {
                 break;
             }
@@ -11895,7 +11897,7 @@ void Player::learnSkillRewardedSpells(uint32 skill_id, uint32 skill_value)
         {
             continue;
         }
-
+   
         // need unlearn spell
         if (skill_value < pAbility->MinSkillLineRank && pAbility->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_VALUE)
         {
@@ -13557,14 +13559,14 @@ void Player::_LoadSkills(PreparedQueryResult result)
             uint16 max      = fields[2].Get<uint16>();
 
             SkillRaceClassInfoEntry const* rcEntry = GetSkillRaceClassInfo(skill, getRace(), getClass());
-            if (!rcEntry)
-            {
-                LOG_ERROR("entities.player", "Character {} has skill {} that does not exist.", GetGUID().ToString(), skill);
-                continue;
-            }
+            //if (!rcEntry)
+            //{
+                //LOG_ERROR("entities.player", "Character {} has skill {} that does not exist.", GetGUID().ToString(), skill);
+                //continue;
+            //}
 
             // set fixed skill ranges
-            switch (GetSkillRangeType(rcEntry))
+            switch (GetSkillRangeType(rcEntry, skill))
             {
                 case SKILL_RANGE_LANGUAGE:                      // 300..300
                     value = max = 300;
@@ -13593,14 +13595,16 @@ void Player::_LoadSkills(PreparedQueryResult result)
             }
 
             uint16 skillStep = 0;
-            if (SkillTiersEntry const* skillTier = sSkillTiersStore.LookupEntry(rcEntry->SkillTierID))
-            {
-                for (uint32 i = 0; i < MAX_SKILL_STEP; ++i)
+            if (rcEntry) {
+                if (SkillTiersEntry const* skillTier = sSkillTiersStore.LookupEntry(rcEntry->SkillTierID))
                 {
-                    if (skillTier->Value[skillStep] == max)
+                    for (uint32 i = 0; i < MAX_SKILL_STEP; ++i)
                     {
-                        skillStep = i + 1;
-                        break;
+                        if (skillTier->Value[skillStep] == max)
+                        {
+                            skillStep = i + 1;
+                            break;
+                        }
                     }
                 }
             }
