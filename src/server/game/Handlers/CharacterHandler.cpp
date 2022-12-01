@@ -2139,6 +2139,46 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
 
     if (oldRace != factionChangeInfo->Race)
     {
+        // Delete Racial Skills
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SKILL_BY_SKILL);
+        stmt->SetData(0, lowGuid);
+
+        switch (oldRace)
+        {
+        case RACE_HUMAN:
+            stmt->SetData(1, 754);
+            break;
+        case RACE_DWARF:
+            stmt->SetData(1, 101);
+            break;
+        case RACE_DRAENEI:
+            stmt->SetData(1, 760);
+            break;
+        case RACE_GNOME:
+            stmt->SetData(1, 753);
+            break;
+        case RACE_NIGHTELF:
+            stmt->SetData(1, 126);
+            break;
+        case RACE_UNDEAD_PLAYER:
+            stmt->SetData(1, 220);
+            break;
+        case RACE_TAUREN:
+            stmt->SetData(1, 124);
+            break;
+        case RACE_ORC:
+            stmt->SetData(1, 125);
+            break;
+        case RACE_TROLL:
+            stmt->SetData(1, 733);
+            break;
+        case RACE_BLOODELF:
+            stmt->SetData(1, 756);
+            break;
+        }
+
+        trans->Append(stmt);
+
         // Switch Languages
         // delete all languages first
         stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SKILL_LANGUAGES);
