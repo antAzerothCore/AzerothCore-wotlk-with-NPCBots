@@ -1,6 +1,7 @@
 #include "botdatamgr.h"
 #include "Creature.h"
 #include "DatabaseEnv.h"
+#include "GroupMgr.h"
 #include "Item.h"
 #include "Log.h"
 #include "Map.h"
@@ -125,7 +126,7 @@ void BotDataMgr::LoadNpcBots(bool spawn)
         LOG_INFO("server.loading", ">> Bot transmog data loaded");
     }
     else
-        LOG_INFO("server.loading", ">> Bots transmog data is not loaded. Table `creature_template_npcbot_transmog` is empty!");
+        LOG_INFO("server.loading", ">> Bots transmog data is not loaded. Table `characters_npcbot_transmog` is empty!");
 
     //                                       0      1      2      3     4        5          6          7          8          9               10          11          12         13
     result = CharacterDatabase.Query("SELECT entry, owner, roles, spec, faction, equipMhEx, equipOhEx, equipRhEx, equipHead, equipShoulders, equipChest, equipWaist, equipLegs, equipFeet,"
@@ -253,6 +254,47 @@ void BotDataMgr::LoadNpcBots(bool spawn)
     LOG_INFO("server.loading", ">> Spawned {} npcbot(s) within {} grid(s) in {} ms", botcounter, uint32(botgrids.size()), GetMSTimeDiffToNow(botoldMSTime));
 
     allBotsLoaded = true;
+}
+
+void BotDataMgr::LoadNpcBotGroupData()
+{
+    LOG_INFO("server.loading", "Loading NPCBot Group members...");
+
+    uint32 oldMSTime = getMSTime();
+
+    CharacterDatabase.DirectExecute("DELETE FROM characters_npcbot_group_member WHERE guid NOT IN (SELECT guid FROM `groups`)");
+    CharacterDatabase.DirectExecute("DELETE FROM characters_npcbot_group_member WHERE entry NOT IN (SELECT entry FROM characters_npcbot)");
+
+    //                                                   0     1      2            3         4
+    QueryResult result = CharacterDatabase.Query("SELECT guid, entry, memberFlags, subgroup, roles FROM characters_npcbot_group_member ORDER BY guid");
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 NPCBot group members. DB table `group_member` is empty!");
+        return;
+    }
+
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 creature_id = fields[1].Get<uint32>();
+        if (!SelectNpcBotExtras(creature_id))
+        {
+            LOG_WARN("server.loading", "Table `characters_npcbot_group_member` contains non-NPCBot creature {} which will not be loaded!", creature_id);
+            continue;
+        }
+
+        if (Group* group = sGroupMgr->GetGroupByGUID(fields[0].Get<uint32>()))
+            group->LoadCreatureMemberFromDB(creature_id, fields[2].Get<uint8>(), fields[3].Get<uint8>(), fields[4].Get<uint8>());
+        else
+            LOG_ERROR("misc", "BotDataMgr::LoadNpcBotGroupData: Consistency failed, can't find group (storage id: {})", fields[0].Get<uint32>());
+
+        ++count;
+
+    } while (result->NextRow());
+
+    LOG_INFO("server.loading", ">> Loaded %u NPCBot group members in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
 void BotDataMgr::AddNpcBotData(uint32 entry, uint32 roles, uint8 spec, uint32 faction)
@@ -639,4 +681,31 @@ void BotDataMgr::GetNPCBotGuidsByOwner(std::vector<ObjectGuid> &guids_vec, Objec
         if (_botsData[(*ci)->GetEntry()]->owner == owner_guid.GetCounter())
             guids_vec.push_back((*ci)->GetGUID());
     }
+}
+
+ObjectGuid BotDataMgr::GetNPCBotGuid(uint32 entry)
+{
+    ASSERT(AllBotsLoaded());
+
+    std::shared_lock<std::shared_mutex> lock(*GetLock());
+
+    for (NpcBotRegistry::const_iterator ci = _existingBots.begin(); ci != _existingBots.end(); ++ci)
+    {
+        if ((*ci)->GetEntry() == entry)
+            return (*ci)->GetGUID();
+    }
+
+    return ObjectGuid::Empty;
+}
+
+std::vector<uint32> BotDataMgr::GetExistingNPCBotIds()
+{
+    ASSERT(AllBotsLoaded());
+
+    std::vector<uint32> existing_ids;
+    existing_ids.reserve(_botsData.size());
+    for (decltype(_botsData)::value_type const& bot_data_pair : _botsData)
+        existing_ids.push_back(bot_data_pair.first);
+
+    return existing_ids;
 }

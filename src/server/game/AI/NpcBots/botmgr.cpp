@@ -187,6 +187,7 @@ void BotMgr::Initialize()
         return;
 
     BotDataMgr::LoadNpcBots();
+    BotDataMgr::LoadNpcBotGroupData();
 }
 
 void BotMgr::ReloadConfig()
@@ -902,7 +903,7 @@ void BotMgr::TeleportBot(Creature* bot, Map* newMap, Position* pos, bool quick)
     _teleportBot(bot, newMap, pos->GetPositionX(), pos->GetPositionY(), pos->GetPositionZ(), pos->GetOrientation(), quick);
 }
 
-void BotMgr::CleanupsBeforeBotDelete(ObjectGuid guid, uint8 /*removetype*/)
+void BotMgr::CleanupsBeforeBotDelete(ObjectGuid guid, uint8 removetype)
 {
     BotMap::const_iterator itr = _bots.find(guid);
     ASSERT(itr != _bots.end(), "Trying to remove bot which does not belong to this botmgr(b)!!");
@@ -918,7 +919,8 @@ void BotMgr::CleanupsBeforeBotDelete(ObjectGuid guid, uint8 /*removetype*/)
         bot->ExitVehicle();
 
     RemoveBotFromBGQueue(bot);
-    RemoveBotFromGroup(bot);
+    if (removetype != BOT_REMOVE_LOGOUT)
+        RemoveBotFromGroup(bot);
 
     //remove any summons
     bot->GetBotAI()->UnsummonAll();
@@ -1312,6 +1314,12 @@ void BotMgr::SendBotCommandStateRemove(uint8 state)
         itr->second->GetBotAI()->RemoveBotCommandState(state);
 }
 
+void BotMgr::SendBotAwaitState(uint8 state)
+{
+    for (BotMap::const_iterator itr = _bots.begin(); itr != _bots.end(); ++itr)
+        itr->second->GetBotAI()->SetBotAwaitState(state);
+}
+
 void BotMgr::RecallAllBots(bool teleport)
 {
     if (teleport)
@@ -1539,6 +1547,9 @@ void BotMgr::OnBotOwnerSpellGo(Unit const* caster, Spell const* spell, bool ok)
     {
         if (Creature const* bot = itr->second)
         {
+            if (!bot->IsInWorld() || !bot->IsAlive())
+                continue;
+
             bot->GetBotAI()->OnBotOwnerSpellGo(spell, ok);
             //if (Creature const* botpet = bot->GetBotsPet())
             //    botpet->GetBotAI()->OnBotPetOwnerSpellGo(spell, ok);
