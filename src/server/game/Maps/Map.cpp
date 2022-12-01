@@ -2747,7 +2747,7 @@ uint32 Map::GetPlayersCountExceptGMs() const
                 for (BotMap::const_iterator itr = botmap->begin(); itr != botmap->end(); ++itr)
                 {
                     Creature* cre = itr->second;
-                    if (!cre || !cre->IsInWorld() || cre->FindMap() != this || cre->IsTempBot())
+                    if (!cre || cre->IsTempBot())
                         continue;
                     ++count;
                 }
