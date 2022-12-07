@@ -68,6 +68,8 @@ nbproject/
 .idea
 cmake-build-*/*
 coverage-report/
+/.vs/*
+/out/*
 
 #
 # Eclipse
