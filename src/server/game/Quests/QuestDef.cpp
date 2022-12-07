@@ -204,18 +204,8 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     {
         return 0;
     }
-
-    int32 diffFactor = 2 * (quest_level - playerLevel) + 20;
-    if (diffFactor < 1)
-    {
-        diffFactor = 1;
-    }
-    else if (diffFactor > 10)
-    {
-        diffFactor = 10;
-    }
-
-    uint32 xp = diffFactor * xpentry->Exp[RewardXPDifficulty] / 10;
+    
+    uint32 xp = xpentry->Exp[RewardXPDifficulty];
     if (xp <= 100)
     {
         xp = 5 * ((xp + 2) / 5);
@@ -232,7 +222,14 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     {
         xp = 50 * ((xp + 25) / 50);
     }
-
+    
+    // Scaling Factor for high level players
+    float diffFactor = 1.0f;
+    if (quest_level <= Acore::XP::GetGrayLevel(playerLevel))
+        diffFactor = (float) (playerLevel/((int32)quest_level)) * 0.33f;
+        
+    xp *= diffFactor;
+    
     return xp;
 }
 
