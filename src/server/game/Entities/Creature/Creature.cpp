@@ -3406,23 +3406,13 @@ float Creature::GetAggroRange(Unit const* target) const
     float aggroRate = sWorld->getRate(RATE_CREATURE_AGGRO);
     if (aggroRate == 0)
         return 0.0f;
-
-    auto creatureLevel = target->getLevelForTarget(this);
-    auto playerLevel  = getLevelForTarget(target);
-    int32 levelDiff = int32(creatureLevel) - int32(playerLevel);
-
-    // The maximum Aggro Radius is capped at 45 yards (25 level difference)
-    if (levelDiff < -25)
-        levelDiff = -25;
-
+        
     // The base aggro radius for mob of same level
     auto aggroRadius = GetDetectionRange();
     if (aggroRadius < 1)
     {
         return 0.0f;
     }
-    // Aggro Radius varies with level difference at a rate of roughly 1 yard/level
-    aggroRadius -= (float)levelDiff;
 
     // detect range auras
     aggroRadius += GetTotalAuraModifier(SPELL_AURA_MOD_DETECT_RANGE);
@@ -3600,21 +3590,10 @@ float Creature::GetAttackDistance(Unit const* player) const
     if (!player)
         return 0.0f;
 
-    uint32 playerLevel = player->getLevelForTarget(this);
     uint32 creatureLevel = getLevelForTarget(player);
-
-    int32 levelDiff = static_cast<int32>(playerLevel) - static_cast<int32>(creatureLevel);
-
-    // "The maximum Aggro Radius has a cap of 25 levels under. Example: A level 30 char has the same Aggro Radius of a level 5 char on a level 60 mob."
-    if (levelDiff < -25)
-        levelDiff = -25;
 
     // "The aggro radius of a mob having the same level as the player is roughly 20 yards"
     float retDistance = 20.0f;
-
-    // "Aggro Radius varies with level difference at a rate of roughly 1 yard/level"
-    // radius grow if playlevel < creaturelevel
-    retDistance -= static_cast<float>(levelDiff);
 
     if (creatureLevel + 5 <= sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
     {
