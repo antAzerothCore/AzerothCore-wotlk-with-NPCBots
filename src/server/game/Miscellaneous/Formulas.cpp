@@ -61,7 +61,11 @@ uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels conten
             baseGain = (pl_level * 5 + nBaseExp) * (ZD + mob_level - pl_level) / ZD;
         }
         else
-            baseGain = 0;
+        {
+            // Tweaked to also reward XP for gray mob kills (open world scaling)
+            uint8 ZD = GetZeroDifference(pl_level);
+            baseGain = (pl_level * 5 + nBaseExp) * (ZD - 5 + mob_level)/(ZD + mob_level) * 0.66f;
+        }
     }
 
     //sScriptMgr->OnBaseGainCalculation(baseGain, pl_level, mob_level, content); // pussywizard: optimization

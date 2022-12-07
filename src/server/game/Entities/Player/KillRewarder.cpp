@@ -152,15 +152,8 @@ void KillRewarder::_RewardXP(Player* player, float rate)
     if (_group)
     {
         // 4.2.1. If player is in group, adjust XP:
-        //        * set to 0 if player's level is more than maximum level of not gray member;
-        //        * cut XP in half if _isFullXP is false.
-        if (_maxNotGrayMember && player->IsAlive() &&
-            _maxNotGrayMember->getLevel() >= player->getLevel())
-            xp = _isFullXP ?
-                 uint32(xp * rate) :             // Reward FULL XP if all group members are not gray.
-                 uint32(xp * rate / 2) + 1;      // Reward only HALF of XP if some of group members are gray.
-        else
-            xp = 0;
+        //        * To support open world scaling, always reward full XP.
+        xp = uint32(xp * rate); // Reward FULL XP as if no group members are gray.
     }
     if (xp)
     {
