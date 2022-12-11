@@ -225,8 +225,9 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     
     // Scaling Factor for high level players
     float diffFactor = 1.0f;
-    if (quest_level <= Acore::XP::GetGrayLevel(playerLevel))
-        diffFactor = (float) (playerLevel/((int32)quest_level)) * 0.33f;
+    uint8 GrayLevel = Acore::XP::GetGrayLevel(playerLevel);
+    if (quest_level <= GrayLevel)
+        diffFactor = (float)GrayLevel / quest_level * 0.9f;
         
     xp *= diffFactor;
     
