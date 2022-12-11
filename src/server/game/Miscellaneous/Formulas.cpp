@@ -64,7 +64,7 @@ uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels conten
         {
             // Tweaked to also reward XP for gray mob kills (open world scaling)
             uint8 ZD = GetZeroDifference(pl_level);
-            baseGain = (pl_level * 5 + nBaseExp) * (ZD - 5 + mob_level)/(ZD + mob_level) * 0.66f;
+            baseGain = (pl_level * 5 + nBaseExp) * (float)mob_level/(ZD+mob_level)*0.66f;
         }
     }
 
