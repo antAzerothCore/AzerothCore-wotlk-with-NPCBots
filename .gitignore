@@ -99,3 +99,4 @@ local.properties
 #  !modules/yourmodule
 #
 # ==================
+.vscode/extensions.json
