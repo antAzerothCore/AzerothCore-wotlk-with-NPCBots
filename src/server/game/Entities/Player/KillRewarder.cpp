@@ -236,10 +236,8 @@ void KillRewarder::_RewardGroup()
 {
     if (_maxLevel)
     {
-        if (_maxNotGrayMember)
-            // 3.1.1. Initialize initial XP amount based on maximum level of group member,
-            //        for whom victim is not gray.
-            _InitXP(_maxNotGrayMember);
+        // 3.1.1. Initialize initial XP amount based on maximum level of group member,
+        _InitXP(_killer);
         // To avoid unnecessary calculations and calls,
         // proceed only if XP is not ZERO or player is not on battleground
         // (battleground rewards only XP, that's why).
