@@ -2737,19 +2737,24 @@ uint32 Map::GetPlayersCountExceptGMs() const
 {
     uint32 count = 0;
     for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
-        if (!itr->GetSource()->IsGameMaster())
-        //npcbot - count npcbots as group members (event if not in group)
+    {
+        Player *Player = itr->GetSource();
+        if (!Player->IsGameMaster())
+        //npcbot - count npcbots as group members (only if in group)
         {
-            if (itr->GetSource()->HaveBot() && BotMgr::LimitBots(this))
+            if (Player->HaveBot() && BotMgr::LimitBots(this))
             {
                 ++count;
-                BotMap const* botmap = itr->GetSource()->GetBotMgr()->GetBotMap();
+                BotMap const* botmap = Player->GetBotMgr()->GetBotMap();
                 for (BotMap::const_iterator itr = botmap->begin(); itr != botmap->end(); ++itr)
                 {
                     Creature* cre = itr->second;
                     if (!cre || cre->IsTempBot())
                         continue;
-                    ++count;
+
+                    Group* gr = Player->GetGroup();
+                    if (gr && gr->IsMember(cre->GetGUID()))
+                        ++count;
                 }
                 continue;
             }
@@ -2758,6 +2763,8 @@ uint32 Map::GetPlayersCountExceptGMs() const
         //npcbot
         }
         //end npcbot
+    }
+
     return count;
 }
 
