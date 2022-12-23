@@ -4336,6 +4336,8 @@ void Player::DeleteFromDB(ObjectGuid::LowType lowGuid, uint32 accountId, bool up
                 uint32 newOwner = 0;
                 BotDataMgr::UpdateNpcBotDataAll(lowGuid, NPCBOT_UPDATE_OWNER, &newOwner);
                 //end npcbot
+                
+                CharacterDatabase.DirectExecute("DELETE FROM `individualnpcbot` WHERE owner = {}", lowGuid);
 
                 sScriptMgr->OnDeleteFromDB(trans, lowGuid);
 

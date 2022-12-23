@@ -290,6 +290,9 @@ class bot_ai : public CreatureAI
 
         bool IsImmunedToMySpellEffect(Unit const* unit, SpellInfo const* spellInfo, SpellEffIndex index) const;
 
+        void LoadFromOwnerDB();
+        void SaveToOwnerDB();
+
     protected:
         explicit bot_ai(Creature* creature);
 
@@ -635,6 +638,7 @@ class bot_ai : public CreatureAI
 
         //save flags
         bool _saveDisabledSpells;
+        bool _unsavedChanges = false;
 
         TeleportHomeEvent* teleHomeEvent;
         TeleportFinishEvent* teleFinishEvent;

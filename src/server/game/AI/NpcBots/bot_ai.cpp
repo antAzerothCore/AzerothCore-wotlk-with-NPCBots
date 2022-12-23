@@ -5965,6 +5965,7 @@ void bot_ai::EnableAllSpells()
     NpcBotData* npcBotData = const_cast<NpcBotData*>(BotDataMgr::SelectNpcBotData(me->GetEntry()));
     npcBotData->disabled_spells.clear();
     _saveDisabledSpells = true;
+    _unsavedChanges = true;
 
     for (BotSpellMap::const_iterator itr = _spells.begin(); itr != _spells.end(); ++itr)
         if (itr->second->enabled == false)
@@ -8123,8 +8124,22 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
         }
         case GOSSIP_SENDER_UNEQUIP: //equips change s3: Unequip DEPRECATED
         {
-            if (!_unequip(action - GOSSIP_ACTION_INFO_DEF, player->GetGUID()))
-            {} //BotWhisper("Impossible...", player);
+            if (!_unequip(action - GOSSIP_ACTION_INFO_DEF, player->GetGUID().GetCounter()))
+            {
+                //BotWhisper("Impossible...", player);
+            }
+            else
+            {
+                _unsavedChanges = true;
+
+                // Update visuals
+                if (Aura* trans = me->AddAura(MODEL_TRANSITION, me))
+                {
+                    me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + BOT_SLOT_OFFHAND, 0); //debug: remove offhand visuals
+                    trans->SetDuration(500);
+                    trans->SetMaxDuration(500);
+                }
+            }
             return OnGossipSelect(player, creature, GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 1);
         }
         case GOSSIP_SENDER_UNEQUIP_ALL:
@@ -8141,8 +8156,19 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                 }
             }
 
-            if (suc)
+            if (suc) {
                 me->HandleEmoteCommand(EMOTE_ONESHOT_CRY);
+                
+                _unsavedChanges = true;
+
+                // Update visuals
+                if (Aura* trans = me->AddAura(MODEL_TRANSITION, me))
+                {
+                    me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + BOT_SLOT_OFFHAND, 0); //debug: remove offhand visuals
+                    trans->SetDuration(500);
+                    trans->SetMaxDuration(500);
+                }
+            }
 
             break;
         }
@@ -8203,7 +8229,17 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                 }
             }
 
-            if (found && _equip(sender - GOSSIP_SENDER_EQUIP_AUTOEQUIP_EQUIP, item, player->GetGUID())){}
+            if (found && _equip(sender - GOSSIP_SENDER_EQUIP_AUTOEQUIP_EQUIP, item, player->GetGUID().GetCounter())){
+                _unsavedChanges = true;
+
+                // Update visuals
+                if (Aura* trans = me->AddAura(MODEL_TRANSITION, me))
+                {
+                    me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + BOT_SLOT_OFFHAND, 0); //debug: remove offhand visuals
+                    trans->SetDuration(500);
+                    trans->SetMaxDuration(500);
+                }
+            }
 
             //break; //no break: update list
         }
@@ -8456,7 +8492,17 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                 }
             }
 
-            if (found && _equip(sender - GOSSIP_SENDER_EQUIP, item, player->GetGUID())){}
+            if (found && _equip(sender - GOSSIP_SENDER_EQUIP, item, player->GetGUID().GetCounter())){
+                _unsavedChanges = true;
+
+                // Update visuals
+                if (Aura* trans = me->AddAura(MODEL_TRANSITION, me))
+                {
+                    me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + BOT_SLOT_OFFHAND, 0); //debug: remove offhand visuals
+                    trans->SetDuration(500);
+                    trans->SetMaxDuration(500);
+                }
+            }
             return OnGossipSelect(player, creature, GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 1);
         }
         case GOSSIP_SENDER_ROLES_MAIN_TOGGLE: //ROLES 2: set/unset
@@ -8610,6 +8656,7 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                         npcBotData->disabled_spells.insert(basespell);
 
                     _saveDisabledSpells = true;
+                    _unsavedChanges = true;
                     break;
                 }
             }
@@ -8710,6 +8757,8 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
 
             if (newSpec != _spec && newSpec >= BOT_SPEC_BEGIN && newSpec <= BOT_SPEC_END)
             {
+                _unsavedChanges = true;
+
                 _newspec = newSpec;
                 me->CastSpell(me, ACTIVATE_SPEC, false);
                 BotWhisper(LocalizedNpcText(player, BOT_TEXT_CHANGING_MY_SPEC_TO_) + LocalizedNpcText(player, TextForSpec(_newspec)));
@@ -8974,6 +9023,8 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                     }
                     else
                         BotWhisper(LocalizedNpcText(player, BOT_TEXT_HIRE_SUCCESS), player);
+
+                    LoadFromOwnerDB();
                 }
                 else
                     BotSay("...", player);
@@ -9041,24 +9092,7 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
         {
             BotMgr* mgr = player->GetBotMgr();
             ASSERT(mgr);
-
-            //send items to owner -- Unequip all
-            bool abort = false;
-            for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
-            {
-                if (!(i <= BOT_SLOT_RANGED ? _resetEquipment(i, player->GetGUID()) : _unequip(i, player->GetGUID())))
-                {
-                    ChatHandler ch(player->GetSession());
-                    ch.PSendSysMessage(LocalizedNpcText(player, BOT_TEXT_CANT_DISMISS_EQUIPMENT).c_str(),
-                        uint32(i), LocalizedNpcText(player, BOT_TEXT_SLOT_MH + i).c_str());
-                    abort = true;
-                    break;
-                }
-            }
-
-            if (abort)
-                break;
-
+            
             mgr->RemoveBot(me->GetGUID(), BOT_REMOVE_DISMISS);
             if (BotMgr::IsEnrageOnDimissEnabled())
             {
@@ -11038,6 +11072,9 @@ bool bot_ai::_unequip(uint8 slot, ObjectGuid receiver)
     RemoveItemBonuses(slot);
     ApplyItemSetBonuses(item, false);
 
+
+    LOG_ERROR("server.loading", "Unequip: {} {}", slot, receiver);
+
     //hand old weapon to master
     if (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != itemId)
     {
@@ -11123,7 +11160,7 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
 
     if (newItem->GetState() == ITEM_REMOVED)
     {
-        LOG_ERROR("entities.player",
+        LOG_ERROR("server.loading",
             "minion_ai::_equip(): player {} ({}) is trying to make bot {} (id: {}) equip item: {} (id: {}, {}) which has state ITEM_REMOVED!",
             master->GetName().c_str(), master->GetGUID().ToString().c_str(), me->GetName().c_str(), me->GetEntry(), proto->Name1.c_str(), proto->ItemId, newItem->GetGUID().ToString().c_str());
         return false;
@@ -11138,35 +11175,38 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
             return false;
     }
 
-    if (!_unequip(slot, receiver))
+    if (receiver != NULL) 
     {
-        //BotWhisper("You have no space for my current item", master);
-        return false;
-    }
+        if (!_unequip(slot, receiver))
+        {
+            //BotWhisper("You have no space for my current item", master);
+            return false;
+        }
 
     if (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != newItemId)
     {
         ASSERT(receiver == master->GetGUID());
 
-        //cheating
-        if (newItem->GetOwnerGUID() != master->GetGUID() || !master->HasItemCount(newItemId, 1))
-        {
-            //std::ostringstream msg;
-            //msg << "Cannot find ";
-            //_AddItemLink(master, newItem, msg, false);
-            //msg << " (id: " << uint32(newItemId) << ")!";
-            //BotWhisper(msg.str().c_str());
+            //cheating
+            if (newItem->GetOwnerGUID() != master->GetGUID() || !master->HasItemCount(newItemId, 1))
+            {
+                //std::ostringstream msg;
+                //msg << "Cannot find ";
+                //_AddItemLink(master, newItem, msg, false);
+                //msg << " (id: " << uint32(newItemId) << ")!";
+                //BotWhisper(msg.str().c_str());
 
-            LOG_ERROR("entities.player",
-                "minion_ai::_equip(): player {} ({}) is trying to make bot {} (id: {}) equip item: {} (id: {}, {}) but either does not have this item or does not own it",
-                master->GetName().c_str(), master->GetGUID().ToString().c_str(), me->GetName().c_str(), me->GetEntry(), proto->Name1.c_str(), proto->ItemId, newItem->GetGUID().ToString().c_str());
-            return false;
+                LOG_ERROR("entities.player",
+                    "minion_ai::_equip(): player {} ({}) is trying to make bot {} (id: {}) equip item: {} (id: {}, {}) but either does not have this item or does not own it",
+                    master->GetName().c_str(), master->GetGUID().ToString().c_str(), me->GetName().c_str(), me->GetEntry(), proto->Name1.c_str(), proto->ItemId, newItem->GetGUID().ToString().c_str());
+                return false;
+            }
+
+            if (master->HasItemCount(newItemId, 1)) master->MoveItemFromInventory(newItem->GetBagSlot(), newItem->GetSlot(), true);
+            //Item is removed from inventory table in _updateEquips(slot, newItem);
+            //newItem->SetOwnerGUID(ObjectGuid::Empty); //needed to prevent some logs to be sent to master, restored at unequip
         }
-
-        master->MoveItemFromInventory(newItem->GetBagSlot(), newItem->GetSlot(), true);
-        //Item is removed from inventory table in _updateEquips(slot, newItem);
-        //newItem->SetOwnerGUID(ObjectGuid::Empty); //needed to prevent some logs to be sent to master, restored at unequip
-    }
+    } 
 
     if (slot <= BOT_SLOT_RANGED)
     {
@@ -11185,6 +11225,8 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
         if (!me->IsInFeralForm())
             me->SetAttackTime(WeaponAttackType(slot), delay); //set attack speed
     }
+
+    LOG_ERROR("server.loading", "Equip: {} {}", slot, newItemId);
 
     _updateEquips(slot, newItem);
 
@@ -11211,10 +11253,10 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
         if (proto->InventoryType == INVTYPE_2HWEAPON && !(_botclass == BOT_CLASS_WARRIOR && me->GetLevel() >= 60 && _spec == BOT_SPEC_WARRIOR_FURY))
         {
             //if have incompatible offhand unequip it
-            if (_equips[BOT_SLOT_OFFHAND] != nullptr)
+            if (_equips[BOT_SLOT_OFFHAND] != nullptr && receiver != NULL)
                 _unequip(BOT_SLOT_OFFHAND, receiver);
         }
-        else if (_equips[BOT_SLOT_OFFHAND] == nullptr && einfo->ItemEntry[BOT_SLOT_OFFHAND])
+        else if (_equips[BOT_SLOT_OFFHAND] == nullptr && einfo->ItemEntry[BOT_SLOT_OFFHAND]  && receiver != NULL)
             _resetEquipment(BOT_SLOT_OFFHAND, receiver);
     }
 
@@ -12664,6 +12706,8 @@ void bot_ai::ToggleRole(uint32 role, bool force)
 
     //Update passives
     shouldUpdateStats = true;
+
+    _unsavedChanges = true;
 }
 
 uint32 bot_ai::DefaultRolesForClass(uint8 m_class)
@@ -18707,4 +18751,128 @@ void bot_ai::InitBotCustomSpells()
 
     LOG_INFO("server.loading", "Re-Loading Spell Proc conditions...");
     sSpellMgr->LoadSpellProcs();
+}
+
+void bot_ai::LoadFromOwnerDB() {
+    if (master != NULL)
+    {
+        // Restore roles, spec, disabled spells, and gear for new owner from DB
+        QueryResult Result = CharacterDatabase.Query("SELECT * FROM `individualnpcbot` WHERE `entry` = {} AND `owner` = {};", me->GetEntry(), GetBotOwnerGuid());
+        if (Result) 
+        {
+            Field *Fields = Result->Fetch();
+
+            // Roles
+            _roleMask = Fields[2].Get<uint32>();
+            BotDataMgr::UpdateNpcBotData(me->GetEntry(), NPCBOT_UPDATE_ROLES, &_roleMask);
+            shouldUpdateStats = true;
+
+            // Spec
+            SetSpec(Fields[3].Get<uint8>(), true);
+
+            // Disabled Spells
+            NpcBotData* npcBotData = const_cast<NpcBotData*>(BotDataMgr::SelectNpcBotData(me->GetEntry()));
+            if (npcBotData) 
+            {
+                npcBotData->disabled_spells.clear();
+                
+                std::string DisabledSpellsString = Fields[22].Get<std::string>();
+
+                if (DisabledSpellsString != "")
+                {
+                    BotSpellMap const& myspells = GetSpellMap();
+
+                    std::stringstream DisabledSpells(DisabledSpellsString);
+                    std::string SpellString;
+                    while (std::getline(DisabledSpells, SpellString, ' '))
+                    {
+                        if (SpellString != "")
+                        {
+                            uint32 Spell;
+                            std::istringstream (SpellString) >> Spell;
+
+                            for (BotSpellMap::const_iterator itr = myspells.begin(); itr != myspells.end(); ++itr)
+                            {
+                                if (itr->first == Spell)
+                                {
+                                    itr->second->enabled = false;
+                                    npcBotData->disabled_spells.insert(Spell);
+                                    _saveDisabledSpells = true;
+
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            // Equip all items
+            std::vector<uint32> Equipment;
+            for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
+            {
+                uint32 ItemGUID = Fields[i+4].Get<uint32>();
+
+                //Equip item
+                QueryResult ItemInstance = CharacterDatabase.Query("SELECT creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, playedTime, text, guid, itemEntry, owner_guid FROM item_instance WHERE guid = {};", ItemGUID);
+                if (ItemInstance) {
+                    Field* fields2 = ItemInstance->Fetch();
+                    uint32 itemGuidLow = fields2[11].Get<uint32>();
+                    uint32 itemId = fields2[12].Get<uint32>();
+                    Item* item = new Item;
+                    ASSERT(item->LoadFromDB(itemGuidLow, master->GetGUID(), fields2, itemId));
+
+                    _equip(i, item, NULL);
+                }
+            }
+
+            _unsavedChanges = false;
+
+            BotDataMgr::UpdateNpcBotData(me->GetEntry(), NPCBOT_UPDATE_EQUIPS, _equips);
+
+            // Update visuals
+            if (Aura* trans = me->AddAura(MODEL_TRANSITION, me))
+            {
+                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + BOT_SLOT_OFFHAND, 0); //debug: remove offhand visuals
+                trans->SetDuration(500);
+                trans->SetMaxDuration(500);
+            }
+        }
+    }
+}
+
+void bot_ai::SaveToOwnerDB() {
+    if (_unsavedChanges && master != NULL)
+    {
+        // Store roles, spec, disabled spells, and gear for current owner into DB
+        uint32 BotRoles = GetBotRoles();
+        uint8 Spec = GetSpec();
+
+        NpcBotData* npcBotData = const_cast<NpcBotData*>(BotDataMgr::SelectNpcBotData(me->GetEntry()));
+        std::ostringstream DisabledSpells;
+        for (NpcBotData::DisabledSpellsContainer::const_iterator citr = npcBotData->disabled_spells.begin(); citr != npcBotData->disabled_spells.end(); ++citr)
+            DisabledSpells << (*citr) << ' ';
+
+        std::vector<uint32> Equipment;
+        for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
+        {
+            Item *Item = GetEquips(i);
+            if (Item && Item->GetOwner() == master)
+            {
+                Equipment.push_back(Item->GetGUID().GetCounter());
+            } else
+            {
+                if (Item) LOG_ERROR("server.loading", "Requested item {} does not belong to master {}", Item->GetGUID().GetCounter(), GetBotOwnerGuid());
+                Equipment.push_back(0);
+            }
+        }
+
+        if (Equipment.size() >= 18) 
+        {
+            CharacterDatabase.DirectExecute("REPLACE INTO `individualnpcbot` (`entry`, `owner`, `roles`, `spec`, `equipMhEx`, `equipOhEx`, `equipRhEx`, `equipHead`, `equipShoulders`,`equipChest`, `equipWaist`, `equipLegs`, `equipFeet`, `equipWrist`, `equipHands`, `equipBack`, `equipBody`, `equipFinger1`, `equipFinger2`, `equipTrinket1`, `equipTrinket2`, `equipNeck`, `spells_disabled`) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');", me->GetEntry(), GetBotOwnerGuid(), BotRoles, Spec, Equipment[0], Equipment[1], Equipment[2], Equipment[3], Equipment[4], Equipment[5], Equipment[6], Equipment[7], Equipment[8], Equipment[9], Equipment[10], Equipment[11], Equipment[12], Equipment[13], Equipment[14], Equipment[15], Equipment[16], Equipment[17], DisabledSpells.str());
+            LOG_ERROR("server.loading", "REPLACE INTO `individualnpcbot` (`entry`, `owner`, `roles`, `spec`, `equipMhEx`, `equipOhEx`, `equipRhEx`, `equipHead`, `equipShoulders`,`equipChest`, `equipWaist`, `equipLegs`, `equipFeet`, `equipWrist`, `equipHands`, `equipBack`, `equipBody`, `equipFinger1`, `equipFinger2`, `equipTrinket1`, `equipTrinket2`, `equipNeck`, `spells_disabled`) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');", me->GetEntry(), GetBotOwnerGuid(), BotRoles, Spec, Equipment[0], Equipment[1], Equipment[2], Equipment[3], Equipment[4], Equipment[5], Equipment[6], Equipment[7], Equipment[8], Equipment[9], Equipment[10], Equipment[11], Equipment[12], Equipment[13], Equipment[14], Equipment[15], Equipment[16], Equipment[17], DisabledSpells.str());
+            _unsavedChanges = false;
+        }
+    }
 }
