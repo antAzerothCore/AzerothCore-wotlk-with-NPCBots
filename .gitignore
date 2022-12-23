@@ -69,6 +69,7 @@ nbproject/
 cmake-build-*/*
 coverage-report/
 /.vs/*
+/.vscode/*
 /out/*
 
 #
