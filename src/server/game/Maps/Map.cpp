@@ -2751,7 +2751,7 @@ uint32 Map::GetPlayersCountExceptGMs() const
                     Creature* cre = itr->second;
                     if (!cre || cre->IsTempBot())
                         continue;
-
+                    
                     Group* gr = Player->GetGroup();
                     if (gr && gr->IsMember(cre->GetGUID()))
                         ++count;
@@ -2763,6 +2763,21 @@ uint32 Map::GetPlayersCountExceptGMs() const
         //npcbot
         }
         //end npcbot
+    }
+    
+    return count;
+}
+
+uint32 Map::GetPlayersCountExceptGMsAndNPCBots() const
+{
+    uint32 count = 0;
+    for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+    {
+        Player *Player = itr->GetSource();
+        if (!Player->IsGameMaster())
+        {
+            ++count;
+        }
     }
 
     return count;
