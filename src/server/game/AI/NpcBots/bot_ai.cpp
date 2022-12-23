@@ -11185,7 +11185,7 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
 
     if (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != newItemId)
     {
-        ASSERT(receiver == master->GetGUID());
+        ASSERT(receiver == master->GetGUID().GetCounter());
 
             //cheating
             if (newItem->GetOwnerGUID() != master->GetGUID() || !master->HasItemCount(newItemId, 1))
