@@ -1014,6 +1014,7 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
     }
 
     Creature* bot = itr->second;
+    bot->GetBotAI()->SaveToOwnerDB();
     CleanupsBeforeBotDelete(guid, removetype);
 
     ////remove control bar
