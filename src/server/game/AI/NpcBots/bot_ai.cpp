@@ -8124,7 +8124,7 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
         }
         case GOSSIP_SENDER_UNEQUIP: //equips change s3: Unequip DEPRECATED
         {
-            if (!_unequip(action - GOSSIP_ACTION_INFO_DEF, player->GetGUID().GetCounter()))
+            if (!_unequip(action - GOSSIP_ACTION_INFO_DEF, player->GetGUID()))
             {
                 //BotWhisper("Impossible...", player);
             }
@@ -8229,7 +8229,7 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                 }
             }
 
-            if (found && _equip(sender - GOSSIP_SENDER_EQUIP_AUTOEQUIP_EQUIP, item, player->GetGUID().GetCounter())){
+            if (found && _equip(sender - GOSSIP_SENDER_EQUIP_AUTOEQUIP_EQUIP, item, player->GetGUID())){
                 _unsavedChanges = true;
 
                 // Update visuals
@@ -8492,7 +8492,7 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                 }
             }
 
-            if (found && _equip(sender - GOSSIP_SENDER_EQUIP, item, player->GetGUID().GetCounter())){
+            if (found && _equip(sender - GOSSIP_SENDER_EQUIP, item, player->GetGUID())){
                 _unsavedChanges = true;
 
                 // Update visuals
@@ -11073,7 +11073,7 @@ bool bot_ai::_unequip(uint8 slot, ObjectGuid receiver)
     ApplyItemSetBonuses(item, false);
 
 
-    LOG_ERROR("server.loading", "Unequip: {} {}", slot, receiver);
+    LOG_ERROR("server.loading", "Unequip: {} {}", slot, receiver.GetCounter());
 
     //hand old weapon to master
     if (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != itemId)
@@ -11175,7 +11175,7 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
             return false;
     }
 
-    if (receiver != NULL) 
+    if (receiver.GetCounter() != 0) 
     {
         if (!_unequip(slot, receiver))
         {
@@ -11183,28 +11183,28 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
             return false;
         }
 
-    if (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != newItemId)
-    {
-        ASSERT(receiver == master->GetGUID().GetCounter());
+        if (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != newItemId)
+        {
+            ASSERT(receiver == master->GetGUID());
 
-            //cheating
-            if (newItem->GetOwnerGUID() != master->GetGUID() || !master->HasItemCount(newItemId, 1))
-            {
-                //std::ostringstream msg;
-                //msg << "Cannot find ";
-                //_AddItemLink(master, newItem, msg, false);
-                //msg << " (id: " << uint32(newItemId) << ")!";
-                //BotWhisper(msg.str().c_str());
+                //cheating
+                if (newItem->GetOwnerGUID() != master->GetGUID() || !master->HasItemCount(newItemId, 1))
+                {
+                    //std::ostringstream msg;
+                    //msg << "Cannot find ";
+                    //_AddItemLink(master, newItem, msg, false);
+                    //msg << " (id: " << uint32(newItemId) << ")!";
+                    //BotWhisper(msg.str().c_str());
 
-                LOG_ERROR("entities.player",
-                    "minion_ai::_equip(): player {} ({}) is trying to make bot {} (id: {}) equip item: {} (id: {}, {}) but either does not have this item or does not own it",
-                    master->GetName().c_str(), master->GetGUID().ToString().c_str(), me->GetName().c_str(), me->GetEntry(), proto->Name1.c_str(), proto->ItemId, newItem->GetGUID().ToString().c_str());
-                return false;
-            }
+                    LOG_ERROR("entities.player",
+                        "minion_ai::_equip(): player {} ({}) is trying to make bot {} (id: {}) equip item: {} (id: {}, {}) but either does not have this item or does not own it",
+                        master->GetName().c_str(), master->GetGUID().ToString().c_str(), me->GetName().c_str(), me->GetEntry(), proto->Name1.c_str(), proto->ItemId, newItem->GetGUID().ToString().c_str());
+                    return false;
+                }
 
-            if (master->HasItemCount(newItemId, 1)) master->MoveItemFromInventory(newItem->GetBagSlot(), newItem->GetSlot(), true);
-            //Item is removed from inventory table in _updateEquips(slot, newItem);
-            //newItem->SetOwnerGUID(ObjectGuid::Empty); //needed to prevent some logs to be sent to master, restored at unequip
+                if (master->HasItemCount(newItemId, 1)) master->MoveItemFromInventory(newItem->GetBagSlot(), newItem->GetSlot(), true);
+                //Item is removed from inventory table in _updateEquips(slot, newItem);
+                //newItem->SetOwnerGUID(ObjectGuid::Empty); //needed to prevent some logs to be sent to master, restored at unequip
         }
     } 
 
@@ -11253,10 +11253,10 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
         if (proto->InventoryType == INVTYPE_2HWEAPON && !(_botclass == BOT_CLASS_WARRIOR && me->GetLevel() >= 60 && _spec == BOT_SPEC_WARRIOR_FURY))
         {
             //if have incompatible offhand unequip it
-            if (_equips[BOT_SLOT_OFFHAND] != nullptr && receiver != NULL)
+            if (_equips[BOT_SLOT_OFFHAND] != nullptr)
                 _unequip(BOT_SLOT_OFFHAND, receiver);
         }
-        else if (_equips[BOT_SLOT_OFFHAND] == nullptr && einfo->ItemEntry[BOT_SLOT_OFFHAND]  && receiver != NULL)
+        else if (_equips[BOT_SLOT_OFFHAND] == nullptr && einfo->ItemEntry[BOT_SLOT_OFFHAND])
             _resetEquipment(BOT_SLOT_OFFHAND, receiver);
     }
 
@@ -18823,7 +18823,7 @@ void bot_ai::LoadFromOwnerDB() {
                     Item* item = new Item;
                     ASSERT(item->LoadFromDB(itemGuidLow, master->GetGUID(), fields2, itemId));
 
-                    _equip(i, item, NULL);
+                    _equip(i, item, ObjectGuid());
                 }
             }
 
