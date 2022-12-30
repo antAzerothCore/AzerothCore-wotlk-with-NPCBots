@@ -18858,12 +18858,11 @@ void bot_ai::SaveToOwnerDB() {
         for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
         {
             Item *Item = GetEquips(i);
-            if (Item && Item->GetOwner() == master)
+            if (Item)
             {
                 Equipment.push_back(Item->GetGUID().GetCounter());
             } else
             {
-                if (Item) LOG_ERROR("server.loading", "Requested item {} does not belong to master {}", Item->GetGUID().GetCounter(), GetBotOwnerGuid());
                 Equipment.push_back(0);
             }
         }
