@@ -18578,12 +18578,6 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     //end npcbot
 
     bool isRewardAllowed = true;
-    if (creature)
-    {
-        isRewardAllowed = creature->IsDamageEnoughForLootingAndReward();
-        if (!isRewardAllowed)
-            creature->SetLootRecipient(nullptr);
-    }
 
     // pussywizard: remade this if section (player is on the same map
     if (isRewardAllowed && creature)
