@@ -1794,6 +1794,8 @@ public:
 
         sObjectMgr->AddCreatureToGrid(db_guid, sObjectMgr->GetCreatureData(db_guid));
 
+        bot_ai* bot = creature->GetBotAI();
+        if (bot) bot->SetBotOwner(chr);
         handler->SendSysMessage("NpcBot successfully spawned");
         return true;
     }
