@@ -1369,8 +1369,6 @@ public:
 
     static bool HandleNpcBotDeleteByIdCommand(ChatHandler* handler, Optional<uint32> creature_id)
     {
-        Player* chr = handler->GetSession()->GetPlayer();
-        
         if (!creature_id)
         {
             handler->SendSysMessage(".npcbot delete id");
@@ -1391,15 +1389,7 @@ public:
         Player const* botowner = bot->GetBotOwner()->ToPlayer();
 
         if (botowner && botowner != chr)
-                return false;
-            }
-            if (!bot->GetBotAI()->UnEquipAll(receiver))
-            {
-                handler->PSendSysMessage("%s is unable to unequip some gear. Please remove equips before deleting bot!", bot->GetName().c_str());
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
-        }
+            return false;
 
         if (botowner)
             botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);

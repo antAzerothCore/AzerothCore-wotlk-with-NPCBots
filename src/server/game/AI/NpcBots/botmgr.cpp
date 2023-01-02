@@ -1069,7 +1069,7 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
         LOG_ERROR("server.loading", "Test20");
-        BotDataMgr::UpdateNpcBotData(OwnerGuid, bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_ERASE);
     }
 }
 
