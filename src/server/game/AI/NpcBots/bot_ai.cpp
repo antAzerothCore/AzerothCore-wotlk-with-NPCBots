@@ -398,8 +398,12 @@ bool bot_ai::SetBotOwner(Player* newowner)
     master = newowner;
     _ownerGuid = newowner->GetGUID().GetCounter();
 
+    LoadFromOwnerDB();
+
     ASSERT(me->IsInWorld());
+
     AbortTeleport();
+
     return true;
 }
 //Check if should totally unlink from owner

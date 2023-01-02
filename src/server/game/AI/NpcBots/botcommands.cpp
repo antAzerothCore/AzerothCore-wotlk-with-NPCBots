@@ -1349,6 +1349,9 @@ public:
 
         Player* botowner = bot->GetBotOwner()->ToPlayer();
 
+        if (botowner && botowner != chr)
+            return false;
+
         if (botowner)
             botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
 
@@ -1366,6 +1369,8 @@ public:
 
     static bool HandleNpcBotDeleteByIdCommand(ChatHandler* handler, Optional<uint32> creature_id)
     {
+        Player* chr = handler->GetSession()->GetPlayer();
+        
         if (!creature_id)
         {
             handler->SendSysMessage(".npcbot delete id");
@@ -1385,16 +1390,7 @@ public:
         Player* chr = !handler->IsConsole() ? handler->GetSession()->GetPlayer() : nullptr;
         Player const* botowner = bot->GetBotOwner()->ToPlayer();
 
-        if (bot->GetBotAI()->HasRealEquipment())
-        {
-            ObjectGuid receiver =
-                botowner ? botowner->GetGUID() :
-                bot->GetBotAI()->GetBotOwnerGuid() != 0 ? ObjectGuid(HighGuid::Player, 0, bot->GetBotAI()->GetBotOwnerGuid()) :
-                chr ? chr->GetGUID() : ObjectGuid::Empty;
-            if (receiver == ObjectGuid::Empty)
-            {
-                handler->PSendSysMessage("Cannot delete bot %s from console: has gear but no player to give it back to! Can only delete this bot in-game.", bot->GetName().c_str());
-                handler->SetSentErrorMessage(true);
+        if (botowner && botowner != chr)
                 return false;
             }
             if (!bot->GetBotAI()->UnEquipAll(receiver))
