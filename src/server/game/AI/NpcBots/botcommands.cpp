@@ -1115,7 +1115,8 @@ public:
             return false;
         }
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_FACTION, &factionId);
+        LOG_ERROR("server.loading", "Test18");
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_FACTION, &factionId);
         bot->GetBotAI()->ReInitFaction();
 
         handler->PSendSysMessage("%s's faction set to %u", bot->GetName().c_str(), factionId);
@@ -1169,7 +1170,8 @@ public:
             return false;
         }
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
+        LOG_ERROR("server.loading", "Test17");
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
         bot->GetBotAI()->ReinitOwner();
         //bot->GetBotAI()->Reset();
 
@@ -1268,7 +1270,9 @@ public:
             if (!_botExtras || _botExtras->bclass != botclass)
                 continue;
 
-            if (unspawned && *unspawned && BotDataMgr::SelectNpcBotData(id))
+        LOG_ERROR("server.loading", "Test16");
+            Player* chr = handler->GetSession()->GetPlayer();
+            if (unspawned && *unspawned && BotDataMgr::SelectNpcBotData(chr->GetGUID(), id))
                 continue;
 
             uint8 race = _botExtras->race;
@@ -1361,7 +1365,7 @@ public:
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
 
         handler->SendSysMessage("Npcbot successfully deleted");
         return true;
@@ -1385,7 +1389,6 @@ public:
             return false;
         }
 
-        Player* chr = !handler->IsConsole() ? handler->GetSession()->GetPlayer() : nullptr;
         Player const* botowner = bot->GetBotOwner()->ToPlayer();
 
         if (botowner && botowner != chr)
@@ -1400,7 +1403,7 @@ public:
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
 
         handler->PSendSysMessage("Npcbot %s successfully deleted", bot->GetName().c_str());
         return true;
@@ -1408,9 +1411,11 @@ public:
 
     static bool HandleNpcBotDeleteFreeCommand(ChatHandler* handler)
     {
+        Player* chr = handler->GetSession()->GetPlayer();
+
         uint32 count = 0;
         for (uint32 creature_id : BotDataMgr::GetExistingNPCBotIds())
-            if (NpcBotData const* botData = BotDataMgr::SelectNpcBotData(creature_id))
+            if (NpcBotData const* botData = BotDataMgr::SelectNpcBotData(chr->GetGUID(), creature_id))
                 if (botData->owner == 0)
                     if (HandleNpcBotDeleteByIdCommand(handler, creature_id))
                         ++count;
@@ -1454,7 +1459,9 @@ public:
             return false;
         }
 
-        if (!BotDataMgr::SelectNpcBotData(id))
+        LOG_ERROR("server.loading", "Test15");
+
+        if (!BotDataMgr::SelectNpcBotData(player->GetGUID(), id))
         {
             handler->PSendSysMessage("NpcBot %u is not spawned!", id);
             handler->SetSentErrorMessage(true);
@@ -1720,13 +1727,19 @@ public:
             return false;
         }
 
-        if (BotDataMgr::SelectNpcBotData(id))
+        LOG_ERROR("server.loading", "Test1");
+
+        Player* chr = handler->GetSession()->GetPlayer();
+
+        if (BotDataMgr::SelectNpcBotData(chr->GetGUID(), id))
         {
             handler->PSendSysMessage("Npcbot %u already exists in `characters_npcbot` table!", id);
             handler->SendSysMessage("If you want to move this bot to a new location use '.npcbot move' command");
             handler->SetSentErrorMessage(true);
             return false;
         }
+
+        LOG_ERROR("server.loading", "Test2");
 
         WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_BY_ID);
         //"SELECT guid FROM creature WHERE id1 = ? OR id2 = ? OR id3 = ?", CONNECTION_SYNCH
@@ -1739,8 +1752,6 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-
-        Player* chr = handler->GetSession()->GetPlayer();
 
         if (/*Transport* trans = */chr->GetTransport())
         {
@@ -1779,9 +1790,15 @@ public:
             return false;
         }
 
-        BotDataMgr::AddNpcBotData(id, bot_ai::DefaultRolesForClass(_botExtras->bclass), bot_ai::DefaultSpecForClass(_botExtras->bclass), creature->GetCreatureTemplate()->faction);
+        LOG_ERROR("server.loading", "Test3");
+
+        BotDataMgr::AddNpcBotData(chr->GetGUID(), id, bot_ai::DefaultRolesForClass(_botExtras->bclass), bot_ai::DefaultSpecForClass(_botExtras->bclass), creature->GetCreatureTemplate()->faction);
+
+        LOG_ERROR("server.loading", "Test4");
 
         creature->SaveToDB(map->GetId(), (1 << map->GetSpawnMode()), chr->GetPhaseMaskForSpawn());
+
+        LOG_ERROR("server.loading", "Test5");
 
         uint32 db_guid = creature->GetSpawnId();
         if (!creature->LoadBotCreatureFromDB(db_guid, map))
@@ -1792,11 +1809,19 @@ public:
             return false;
         }
 
+        LOG_ERROR("server.loading", "Test6");
+
         sObjectMgr->AddCreatureToGrid(db_guid, sObjectMgr->GetCreatureData(db_guid));
 
         bot_ai* bot = creature->GetBotAI();
         if (bot) bot->SetBotOwner(chr);
+
+        LOG_ERROR("server.loading", "Test7");
+
         handler->SendSysMessage("NpcBot successfully spawned");
+
+        LOG_ERROR("server.loading", "Test8");
+
         return true;
     }
 
@@ -1839,10 +1864,14 @@ public:
         NpcBotRegistry const& all_bots = BotDataMgr::GetExistingNPCBots();
         //using std::remove_if with sets requires c++20
         std::vector<NpcBotRegistry::value_type> free_bots;
-        free_bots.reserve(all_bots.size());
+        
+        LOG_ERROR("server.loading", "Test13");
+        //free_bots.reserve(all_bots.size());
+        /*
         for (Creature const* bot : all_bots)
             if (BotDataMgr::SelectNpcBotData(bot->GetEntry())->owner == 0)
                 free_bots.push_back(bot);
+        */
         std::stringstream ss;
         if (free_bots.empty())
             ss << "No free bots found!";
@@ -2127,11 +2156,13 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+        
+        LOG_ERROR("server.loading", "Test14");
 
         Creature const* cre = (u && u->GetTypeId() == TYPEID_UNIT) ? u->ToCreature() : BotDataMgr::FindBot(*botname, owner->GetSession()->GetSessionDbLocaleIndex());
         if (!cre || !cre->IsNPCBot() || owner->GetBotMgr()->GetBot(cre->GetGUID()) ||
             !cre->GetBotAI()->HasBotCommandState(BOT_COMMAND_UNBIND) ||
-            BotDataMgr::SelectNpcBotData(cre->GetEntry())->owner != owner->GetGUID().GetCounter())
+            BotDataMgr::SelectNpcBotData(owner->GetGUID(), cre->GetEntry())->owner != owner->GetGUID().GetCounter())
         {
             handler->SendSysMessage("Must target your unbound npcbot");
             handler->SetSentErrorMessage(true);

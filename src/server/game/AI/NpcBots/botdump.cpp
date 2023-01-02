@@ -762,7 +762,8 @@ bool NPCBotsDump::GetDump(std::string& dump)
 
 BotDataVerificationResult NPCBotsDump::VerifyWriteData(uint32 entry) const
 {
-    NpcBotData const* botData = BotDataMgr::SelectNpcBotData(entry);
+    LOG_ERROR("server.loading", "Test12");
+    NpcBotData const* botData;// = BotDataMgr::SelectNpcBotData(entry);
 
     //bot of this entry is not spawned
     if (!botData)
@@ -816,7 +817,8 @@ std::string const EscapedString(char const* cstr)
 
 void NPCBotsDump::AppendBotNPCBotData(BotStringTransaction* trans, uint32 entry) const
 {
-    NpcBotData const* botData = BotDataMgr::SelectNpcBotData(entry);
+    LOG_ERROR("server.loading", "Test11");
+    NpcBotData const* botData;// = BotDataMgr::SelectNpcBotData(entry);
     ASSERT(botData);
 
     std::ostringstream ss;
@@ -851,7 +853,8 @@ void NPCBotsDump::AppendBotNPCBotData(BotStringTransaction* trans, uint32 entry)
 
 void NPCBotsDump::AppendBotNPCBotTransmogData(BotStringTransaction* trans, uint32 entry) const
 {
-    NpcBotData const* botData = BotDataMgr::SelectNpcBotData(entry);
+    LOG_ERROR("server.loading", "Test10");
+    NpcBotData const* botData; // = BotDataMgr::SelectNpcBotData(entry);
     ASSERT(botData);
 
     QueryResult tresult = CharacterDatabase.Query("SELECT `entry`,`slot`,`item_id`,`fake_id` FROM `characters_npcbot_transmog` WHERE entry = {}", entry);
@@ -899,7 +902,8 @@ void NPCBotsDump::AppendBotNPCBotTransmogData(BotStringTransaction* trans, uint3
 
 void NPCBotsDump::AppendBotEquipsData(BotStringTransaction* trans, uint32 entry) const
 {
-    NpcBotData const* botData = BotDataMgr::SelectNpcBotData(entry);
+    LOG_ERROR("server.loading", "Test9");
+    NpcBotData const* botData; // = BotDataMgr::SelectNpcBotData(entry);
     ASSERT(botData);
 
     int8 id = 1;

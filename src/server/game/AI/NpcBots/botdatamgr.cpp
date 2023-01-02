@@ -17,10 +17,12 @@ NpcBots DB Data management
 */
 
 typedef std::unordered_map<uint32 /*entry*/, NpcBotData*> NpcBotDataMap;
+typedef std::unordered_map<uint32 /*guid*/, NpcBotDataMap> NpcBotDataMapByGUID;
 typedef std::unordered_map<uint32 /*entry*/, NpcBotAppearanceData*> NpcBotAppearanceDataMap;
 typedef std::unordered_map<uint32 /*entry*/, NpcBotExtras*> NpcBotExtrasMap;
 typedef std::unordered_map<uint32 /*entry*/, NpcBotTransmogData*> NpcBotTransmogDataMap;
-NpcBotDataMap _botsData;
+//NpcBotDataMap _botsData;
+NpcBotDataMapByGUID _botsDataByGUID;
 NpcBotAppearanceDataMap _botsAppearanceData;
 NpcBotExtrasMap _botsExtras;
 NpcBotTransmogDataMap _botsTransmogData;
@@ -173,7 +175,7 @@ void BotDataMgr::LoadNpcBots(bool spawn)
         }
 
         entryList.push_back(entry);
-        _botsData[entry] = botData;
+        _botsDataByGUID[botData->owner][entry] = botData;
         ++datacounter;
 
     } while (result->NextRow());
@@ -297,21 +299,29 @@ void BotDataMgr::LoadNpcBotGroupData()
     LOG_INFO("server.loading", ">> Loaded %u NPCBot group members in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
-void BotDataMgr::AddNpcBotData(uint32 entry, uint32 roles, uint8 spec, uint32 faction)
+void BotDataMgr::AddNpcBotData(ObjectGuid owner_guid, uint32 entry, uint32 roles, uint8 spec, uint32 faction)
 {
     //botData must be allocated explicitly
-    NpcBotDataMap::iterator itr = _botsData.find(entry);
-    if (itr == _botsData.end())
+    uint32 owner = owner_guid.GetCounter();
+    NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
+    if (itr0 == _botsDataByGUID.end())
+        _botsDataByGUID[owner] = NpcBotDataMap();
+
+    LOG_ERROR("server.loading", "TestXX_1_1: {}", owner);
+
+    NpcBotDataMap::iterator itr = _botsDataByGUID[owner].find(entry);
+    if (itr == _botsDataByGUID[owner].end())
     {
         NpcBotData* botData = new NpcBotData(roles, faction, spec);
-        _botsData[entry] = botData;
+        _botsDataByGUID[owner][entry] = botData;
 
         CharacterDatabasePreparedStatement* bstmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_NPCBOT);
-        //"INSERT INTO characters_npcbot (entry, roles, spec, faction) VALUES (?, ?, ?, ?)", CONNECTION_ASYNC);
+        //"INSERT INTO characters_npcbot (entry, owner, roles, spec, faction) VALUES (?, ?, ?, ?, ?)", CONNECTION_ASYNC);
         bstmt->SetData(0, entry);
-        bstmt->SetData(1, roles);
-        bstmt->SetData(2, spec);
-        bstmt->SetData(3, faction);
+        bstmt->SetData(1, owner);
+        bstmt->SetData(2, roles);
+        bstmt->SetData(3, spec);
+        bstmt->SetData(4, faction);
         CharacterDatabase.Execute(bstmt);
 
         return;
@@ -319,15 +329,28 @@ void BotDataMgr::AddNpcBotData(uint32 entry, uint32 roles, uint8 spec, uint32 fa
 
     LOG_ERROR("sql.sql", "BotMgr::AddNpcBotData(): trying to add new data but entry already exists! entry = {}", entry);
 }
-NpcBotData const* BotDataMgr::SelectNpcBotData(uint32 entry)
+NpcBotData const* BotDataMgr::SelectNpcBotData(ObjectGuid owner_guid, uint32 entry)
 {
-    NpcBotDataMap::const_iterator itr = _botsData.find(entry);
-    return itr != _botsData.end() ? itr->second : nullptr;
+    uint32 owner = owner_guid.GetCounter();
+    LOG_ERROR("server.loading", "Test22_1_1: {}", owner);
+    NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
+    if (itr0 == _botsDataByGUID.end())
+        return nullptr;
+
+    LOG_ERROR("server.loading", "Test22_1_2");
+
+    NpcBotDataMap::const_iterator itr = _botsDataByGUID[owner].find(entry);
+    return itr != _botsDataByGUID[owner].end() ? itr->second : nullptr;
 }
-void BotDataMgr::UpdateNpcBotData(uint32 entry, NpcBotDataUpdateType updateType, void* data)
+void BotDataMgr::UpdateNpcBotData(ObjectGuid owner_guid, uint32 entry, NpcBotDataUpdateType updateType, void* data)
 {
-    NpcBotDataMap::iterator itr = _botsData.find(entry);
-    if (itr == _botsData.end())
+    uint32 owner = owner_guid.GetCounter();
+    NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
+    if (itr0 == _botsDataByGUID.end())
+        return;
+
+    NpcBotDataMap::iterator itr = _botsDataByGUID[owner].find(entry);
+    if (itr == _botsDataByGUID[owner].end())
         return;
 
     CharacterDatabasePreparedStatement* bstmt;
@@ -338,9 +361,10 @@ void BotDataMgr::UpdateNpcBotData(uint32 entry, NpcBotDataUpdateType updateType,
                 break;
             itr->second->owner = *(uint32*)(data);
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_OWNER);
-            //"UPDATE characters_npcbot SET owner = ? WHERE entry = ?", CONNECTION_ASYNC
+            //"UPDATE characters_npcbot SET owner = ? WHERE entry = ? AND owner = ?", CONNECTION_ASYNC
             bstmt->SetData(0, itr->second->owner);
             bstmt->SetData(1, entry);
+            bstmt->SetData(2, owner);
             CharacterDatabase.Execute(bstmt);
             //break; //no break: erase transmogs
         [[fallthrough]];
@@ -353,25 +377,28 @@ void BotDataMgr::UpdateNpcBotData(uint32 entry, NpcBotDataUpdateType updateType,
         case NPCBOT_UPDATE_ROLES:
             itr->second->roles = *(uint32*)(data);
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_ROLES);
-            //"UPDATE character_npcbot SET roles = ? WHERE entry = ?", CONNECTION_ASYNC
+            //"UPDATE character_npcbot SET roles = ? WHERE entry = ? AND owner = ?", CONNECTION_ASYNC
             bstmt->SetData(0, itr->second->roles);
             bstmt->SetData(1, entry);
+            bstmt->SetData(2, owner);
             CharacterDatabase.Execute(bstmt);
             break;
         case NPCBOT_UPDATE_SPEC:
             itr->second->spec = *(uint8*)(data);
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_SPEC);
-            //"UPDATE characters_npcbot SET spec = ? WHERE entry = ?", CONNECTION_ASYNCH
+            //"UPDATE characters_npcbot SET spec = ? WHERE entry = ? AND owner = ?", CONNECTION_ASYNCH
             bstmt->SetData(0, itr->second->spec);
             bstmt->SetData(1, entry);
+            bstmt->SetData(2, owner);
             CharacterDatabase.Execute(bstmt);
             break;
         case NPCBOT_UPDATE_FACTION:
             itr->second->faction = *(uint32*)(data);
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_FACTION);
-            //"UPDATE characters_npcbot SET faction = ? WHERE entry = ?", CONNECTION_ASYNCH
+            //"UPDATE characters_npcbot SET faction = ? WHERE entry = ? AND owner = ?", CONNECTION_ASYNCH
             bstmt->SetData(0, itr->second->faction);
             bstmt->SetData(1, entry);
+            bstmt->SetData(2, owner);
             CharacterDatabase.Execute(bstmt);
             break;
         case NPCBOT_UPDATE_DISABLED_SPELLS:
@@ -382,9 +409,10 @@ void BotDataMgr::UpdateNpcBotData(uint32 entry, NpcBotDataUpdateType updateType,
                 ss << (*citr) << ' ';
 
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_DISABLED_SPELLS);
-            //"UPDATE characters_npcbot SET spells_disabled = ? WHERE entry = ?", CONNECTION_ASYNCH
+            //"UPDATE characters_npcbot SET spells_disabled = ? WHERE entry = ? AND owner = ?", CONNECTION_ASYNCH
             bstmt->SetData(0, ss.str());
             bstmt->SetData(1, entry);
+            bstmt->SetData(2, owner);
             CharacterDatabase.Execute(bstmt);
             break;
         }
@@ -399,7 +427,7 @@ void BotDataMgr::UpdateNpcBotData(uint32 entry, NpcBotDataUpdateType updateType,
 
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_EQUIP);
             //"UPDATE character_npcbot SET equipMhEx = ?, equipOhEx = ?, equipRhEx = ?, equipHead = ?, equipShoulders = ?, equipChest = ?, equipWaist = ?, equipLegs = ?,
-            //equipFeet = ?, equipWrist = ?, equipHands = ?, equipBack = ?, equipBody = ?, equipFinger1 = ?, equipFinger2 = ?, equipTrinket1 = ?, equipTrinket2 = ?, equipNeck = ? WHERE entry = ?", CONNECTION_ASYNC
+            //equipFeet = ?, equipWrist = ?, equipHands = ?, equipBack = ?, equipBody = ?, equipFinger1 = ?, equipFinger2 = ?, equipTrinket1 = ?, equipTrinket2 = ?, equipNeck = ? WHERE entry = ? AND owner = ?", CONNECTION_ASYNC
             CharacterDatabasePreparedStatement* stmt;
             uint8 k;
             for (k = BOT_SLOT_MAINHAND; k != BOT_INVENTORY_SIZE; ++k)
@@ -465,19 +493,21 @@ void BotDataMgr::UpdateNpcBotData(uint32 entry, NpcBotDataUpdateType updateType,
             }
 
             bstmt->SetData(k, entry);
+            bstmt->SetData(k+1, owner);
             trans->Append(bstmt);
             CharacterDatabase.CommitTransaction(trans);
             break;
         }
         case NPCBOT_UPDATE_ERASE:
         {
-            NpcBotDataMap::iterator bitr = _botsData.find(entry);
-            ASSERT(bitr != _botsData.end());
+            NpcBotDataMap::iterator bitr = _botsDataByGUID[owner].find(entry);
+            ASSERT(bitr != _botsDataByGUID[owner].end());
             delete bitr->second;
-            _botsData.erase(bitr);
+            _botsDataByGUID[owner].erase(bitr);
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_NPCBOT);
-            //"DELETE FROM characters_npcbot WHERE entry = ?", CONNECTION_ASYNC
+            //"DELETE FROM characters_npcbot WHERE entry = ? AND owner = ?", CONNECTION_ASYNC
             bstmt->SetData(0, entry);
+            bstmt->SetData(1, owner);
             CharacterDatabase.Execute(bstmt);
             break;
         }
@@ -706,7 +736,7 @@ void BotDataMgr::GetNPCBotGuidsByOwner(std::vector<ObjectGuid> &guids_vec, Objec
 
     for (NpcBotRegistry::const_iterator ci = _existingBots.begin(); ci != _existingBots.end(); ++ci)
     {
-        if (_botsData[(*ci)->GetEntry()]->owner == owner_guid.GetCounter())
+        if (_botsDataByGUID[owner_guid.GetCounter()][(*ci)->GetEntry()]->owner == owner_guid.GetCounter())
             guids_vec.push_back((*ci)->GetGUID());
     }
 }
@@ -731,18 +761,23 @@ std::vector<uint32> BotDataMgr::GetExistingNPCBotIds()
     ASSERT(AllBotsLoaded());
 
     std::vector<uint32> existing_ids;
+    /*
     existing_ids.reserve(_botsData.size());
     for (decltype(_botsData)::value_type const& bot_data_pair : _botsData)
         existing_ids.push_back(bot_data_pair.first);
+    */
 
     return existing_ids;
 }
 
 uint8 BotDataMgr::GetOwnedBotsCount(ObjectGuid owner_guid, uint32 class_mask)
 {
+    uint32 owner = owner_guid.GetCounter();
+
     uint8 count = 0;
+    NpcBotDataMap _botsData = _botsDataByGUID[owner];
     for (decltype(_botsData)::value_type const& bdata : _botsData)
-        if (bdata.second->owner == owner_guid.GetCounter() && (!class_mask || !!(class_mask & (1u << (_botsExtras[bdata.first]->bclass - 1)))))
+        if (bdata.second->owner == owner && (!class_mask || !!(class_mask & (1u << (_botsExtras[bdata.first]->bclass - 1)))))
             ++count;
 
     return count;

@@ -1050,11 +1050,14 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
     bot->SetFaction(bot->GetCreatureTemplate()->faction);
     bot->SetLevel(bot->GetCreatureTemplate()->minlevel);
 
+    ObjectGuid OwnerGuid = bot->GetBotAI()->GetBotOwner()->GetGUID();
+
     if (removetype == BOT_REMOVE_DISMISS)
     {
         BotDataMgr::ResetNpcBotTransmogData(bot->GetEntry(), false);
         uint32 newOwner = 0;
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
+        LOG_ERROR("server.loading", "Test21");
+        BotDataMgr::UpdateNpcBotData(OwnerGuid, bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
     }
 
     if (removetype != BOT_REMOVE_UNBIND)
@@ -1187,7 +1190,8 @@ BotAddResult BotMgr::AddBot(Creature* bot)
             AddBotToGroup(bot);
 
         uint32 newOwner = _owner->GetGUID().GetCounter();
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
+        LOG_ERROR("server.loading", "Test19");
+        BotDataMgr::UpdateNpcBotData(_owner->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
     }
 
     return BOT_ADD_SUCCESS;
