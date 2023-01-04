@@ -2068,7 +2068,7 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
             uint32 absorb = 0;
 
             // Script Hook For CalculateMeleeDamage -- Allow scripts to change the Damage pre class mitigation calculations
-            sScriptMgr->ModifyMeleeDamage(this, victim, damage);
+            sScriptMgr->ModifyMeleeDamage(this, (*dmgShieldItr)->GetCaster(), damage);
 
             DamageInfo dmgInfo(victim, this, damage, i_spellProto, i_spellProto->GetSchoolMask(), SPELL_DIRECT_DAMAGE);
             Unit::CalcAbsorbResist(dmgInfo);
