@@ -2893,7 +2893,13 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
 
     // Miss chance based on melee
     //float miss_chance = MeleeMissChanceCalc(victim, attType);
-    float miss_chance = MeleeSpellMissChance(victim, attType, int32(GetWeaponSkillValue(attType, victim)) - int32(victim->GetMaxSkillValueForLevel(this)), 0);
+
+    // Cap skillDiff to 15 (3 levels) - prevents gray mobs from having increased missing chance.
+    // Tweaked for open world scaling
+    int32 skillDiff = int32(GetWeaponSkillValue(attType, victim)) - int32(victim->GetMaxSkillValueForLevel(this));
+    if ((victim->GetTypeId() == TYPEID_PLAYER || ((GetTypeId() == TYPEID_PLAYER || IsHunterPet() || IsPet() || IsSummon()) && GetMap()->IsDungeon())) && skillDiff < -15) skillDiff = -15;
+
+    float miss_chance = MeleeSpellMissChance(victim, attType, skillDiff, 0);
 
     // Critical hit chance
     float crit_chance = GetUnitCriticalChance(attType, victim);
@@ -3319,7 +3325,7 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     
     // Cap skillDiff to 15 (3 levels) - prevents gray mobs from having increased missing chance.
     // Tweaked for open world scaling
-    if ((victim->GetTypeId() == TYPEID_PLAYER || (GetTypeId() == TYPEID_PLAYER && GetMap()->IsDungeon())) && skillDiff < -15) skillDiff = -15;
+    if ((victim->GetTypeId() == TYPEID_PLAYER || ((GetTypeId() == TYPEID_PLAYER || IsHunterPet() || IsPet() || IsSummon()) && GetMap()->IsDungeon())) && skillDiff < -15) skillDiff = -15;
 
     uint32 roll = urand (0, 10000);
 
@@ -3499,7 +3505,7 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     
     // Cap levelDiff to 3 - prevents gray mobs from having increased missing chance.
     // Tweaked for open world scaling
-    if ((victim->GetTypeId() == TYPEID_PLAYER || (GetTypeId() == TYPEID_PLAYER && GetMap()->IsDungeon())) && levelDiff > 3) levelDiff = 3;
+    if ((victim->GetTypeId() == TYPEID_PLAYER || ((GetTypeId() == TYPEID_PLAYER || IsHunterPet() || IsPet() || IsSummon()) && GetMap()->IsDungeon())) && levelDiff > 3) levelDiff = 3;
 
     int32 MISS_CHANCE_MULTIPLIER;
     if (sWorld->getBoolConfig(CONFIG_MISS_CHANCE_MULTIPLIER_ONLY_FOR_PLAYERS) && GetTypeId() != TYPEID_PLAYER) // keep it as it was originally (7 and 11)
