@@ -29,5 +29,5 @@ CREATE TABLE `characters_npcbot` (
   `equipTrinket2` int(10) unsigned NOT NULL DEFAULT '0',
   `equipNeck` int(10) unsigned NOT NULL DEFAULT '0',
   `spells_disabled` longtext,
-  PRIMARY KEY (`entry`)
+  PRIMARY KEY (`entry`, `owner`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

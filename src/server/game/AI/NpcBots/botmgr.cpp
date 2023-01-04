@@ -1045,23 +1045,13 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
         case BOT_REMOVE_UNBIND:  resetType = BOTAI_RESET_LOST;    break;
         default:                 resetType = BOTAI_RESET_LOGOUT;  break;
     }
-    bot->GetBotAI()->ResetBotAI(resetType);
-
-    bot->SetFaction(bot->GetCreatureTemplate()->faction);
-    bot->SetLevel(bot->GetCreatureTemplate()->minlevel);
 
     ObjectGuid OwnerGuid = bot->GetBotAI()->GetBotOwner()->GetGUID();
 
     if (removetype == BOT_REMOVE_DISMISS)
     {
         BotDataMgr::ResetNpcBotTransmogData(bot->GetEntry(), false);
-        uint32 newOwner = 0;
-        LOG_ERROR("server.loading", "Test21");
-        BotDataMgr::UpdateNpcBotData(OwnerGuid, bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
     }
-
-    if (removetype != BOT_REMOVE_UNBIND)
-        bot->GetBotAI()->Reset();
 
     // Remove From DB on logout or dismiss
     if (removetype == BOT_REMOVE_LOGOUT || removetype == BOT_REMOVE_DISMISS) {
@@ -1071,8 +1061,8 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
-        LOG_ERROR("server.loading", "Test20");
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        //LOG_ERROR("server.loading", "Logout/Dismiss: {} {}", bot->GetEntry(), OwnerGuid.GetCounter());
+        BotDataMgr::UpdateNpcBotData(OwnerGuid, bot->GetEntry(), NPCBOT_UPDATE_ERASE);
     }
 }
 
@@ -1190,7 +1180,7 @@ BotAddResult BotMgr::AddBot(Creature* bot)
             AddBotToGroup(bot);
 
         uint32 newOwner = _owner->GetGUID().GetCounter();
-        LOG_ERROR("server.loading", "Test19");
+        //LOG_ERROR("server.loading", "AddBot: {} {}", bot->GetGUID().GetCounter(), newOwner);
         BotDataMgr::UpdateNpcBotData(_owner->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
     }
 

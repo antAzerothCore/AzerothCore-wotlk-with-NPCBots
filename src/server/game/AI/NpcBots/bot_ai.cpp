@@ -359,6 +359,7 @@ bool bot_ai::SetBotOwner(Player* newowner)
 {
     ASSERT(newowner, "Trying to set NULL owner!!!");
     ASSERT(newowner->GetGUID().IsPlayer(), "Trying to set a non-player as owner!!!");
+    //LOG_ERROR("server.loading", "SetBotOwner: {} {}", me->GetEntry(), newowner->GetGUID().GetCounter());
     //ASSERT(master->GetGUID() == me->GetGUID());
     //ASSERT(IAmFree());
 
@@ -5809,21 +5810,19 @@ void bot_ai::InitSpellMap(uint32 basespell, bool forceadd, bool forwardRank)
 
     newSpell->spellId = spellId;
 
-    LOG_ERROR("server.loading", "Test22");
-
     if (!master)
         return;
 
+    //LOG_ERROR("server.loading", "InitSpellMap: {} {}", me->GetEntry(), master->GetGUID().GetCounter());
+
     NpcBotData const* npcBotData = BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry());
 
-    LOG_ERROR("server.loading", "Test22_1");
-    if (npcBotData->disabled_spells.find(basespell) != npcBotData->disabled_spells.end())
+    if (npcBotData && npcBotData->disabled_spells.find(basespell) != npcBotData->disabled_spells.end())
     {
         newSpell->enabled = false;
         //TC_LOG_ERROR("entities.player", "bot_ai::InitSpellMap(): %s (%u -> %u) is disabled for %s!",
         //    sSpellMgr->GetSpellInfo(basespell)->SpellName[0], basespell, spellId, me->GetName().c_str());
     }
-    LOG_ERROR("server.loading", "Test22_2");
 }
 //Using first-rank spell as source, return true if spell is inited
 bool bot_ai::HasSpell(uint32 basespell) const
@@ -5973,9 +5972,12 @@ void bot_ai::RemoveSpell(uint32 basespell)
 //}
 void bot_ai::EnableAllSpells()
 {
-    LOG_ERROR("server.loading", "Test23");
+    LOG_ERROR("server.loading", "EnableAllSpells: {} {}", me->GetEntry(), master->GetGUID().GetCounter());
+
     NpcBotData* npcBotData = const_cast<NpcBotData*>(BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry()));
-    npcBotData->disabled_spells.clear();
+    if (npcBotData)
+        npcBotData->disabled_spells.clear();
+
     _saveDisabledSpells = true;
     _unsavedChanges = true;
 
@@ -8653,8 +8655,6 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
         case GOSSIP_SENDER_ABILITIES_USAGE_TOGGLE_HEAL:
         case GOSSIP_SENDER_ABILITIES_USAGE_TOGGLE_SUPPORT:
         {
-            
-        LOG_ERROR("server.loading", "Test25");
             NpcBotData* npcBotData = const_cast<NpcBotData*>(BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry()));
 
             uint32 basespell = action - GOSSIP_ACTION_INFO_DEF;
@@ -9431,8 +9431,6 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                         master->GetBotMgr()->RemoveBot(me->GetGUID(), BOT_REMOVE_DISMISS);
                     else
                     {
-                        
-        LOG_ERROR("server.loading", "Test26");
                         //uint32 newOwner = 0;
                         //BotDataMgr::UpdateNpcBotData(me->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
                         ResetBotAI(BOTAI_RESET_DISMISS);
@@ -11296,7 +11294,6 @@ void bot_ai::_updateEquips(uint8 slot, Item* item)
 {
     _equips[slot] = item;
     
-        LOG_ERROR("server.loading", "Test27");
     BotDataMgr::UpdateNpcBotData(master->GetGUID(), me->GetEntry(), NPCBOT_UPDATE_EQUIPS, _equips);
 }
 //Called from gossip menu only (applies only to weapons)
@@ -12717,7 +12714,6 @@ void bot_ai::ToggleRole(uint32 role, bool force)
         _roleMask |= role;
     }
 
-        LOG_ERROR("server.loading", "Test28");
     BotDataMgr::UpdateNpcBotData(master->GetGUID(), me->GetEntry(), NPCBOT_UPDATE_ROLES, &_roleMask);
 
     //Update passives
@@ -12920,18 +12916,22 @@ void bot_ai::ApplyRacials()
 
 void bot_ai::InitFaction()
 {
+    //LOG_ERROR("server.loading", "InitFaction: {} {}", me->GetEntry(), master->GetGUID().GetCounter());
+
     NpcBotData const* npcBotData = BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry());
-    ASSERT(npcBotData, "bot_ai::InitFaction(): data not found!");
+    
+    if (npcBotData)
+    {
+        uint32 faction = npcBotData->faction;
 
-    uint32 faction = npcBotData->faction;
+        //if (faction == 14)
+        //    faction = 35;
 
-    //if (faction == 14)
-    //    faction = 35;
-
-    me->SetFaction(faction);
-    if (botPet)
-        botPet->SetFaction(faction);
-    const_cast<CreatureTemplate*>(me->GetCreatureTemplate())->faction = faction;
+        me->SetFaction(faction);
+        if (botPet)
+            botPet->SetFaction(faction);
+        const_cast<CreatureTemplate*>(me->GetCreatureTemplate())->faction = faction;
+    }
 }
 
 void bot_ai::InitRace()
@@ -12944,10 +12944,11 @@ void bot_ai::InitRace()
 
 void bot_ai::InitOwner()
 {
+    //LOG_ERROR("server.loading", "InitOwner: {} {}", me->GetEntry(), master->GetGUID().GetCounter());
+    
     NpcBotData const* npcBotData = BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry());
-    ASSERT(npcBotData, "bot_ai::InitOwner(): data not found!");
-
-    _ownerGuid = npcBotData->owner;
+    
+    if (npcBotData) _ownerGuid = npcBotData->owner;
 }
 
 void bot_ai::InitRoles()
@@ -12972,7 +12973,7 @@ void bot_ai::InitRoles()
         return;
     }
 
-        LOG_ERROR("server.loading", "Test29");
+    //LOG_ERROR("server.loading", "InitRoles: {} {}", me->GetEntry(), master->GetGUID().GetCounter());
     NpcBotData const* npcBotData = BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry());
     ASSERT(npcBotData, "bot_ai::InitRoles(): data not found!");
 
@@ -13049,7 +13050,7 @@ void bot_ai::InitSpec()
     }
     else
     {
-        LOG_ERROR("server.loading", "Test30");
+        //LOG_ERROR("server.loading", "InitSpec: {}", me->GetEntry(), master->GetGUID().GetCounter());
         NpcBotData const* npcBotData = BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry());
         ASSERT(npcBotData, "bot_ai::InitSpec(): data not found!");
 
@@ -13077,7 +13078,6 @@ void bot_ai::SetSpec(uint8 spec, bool activate)
 
     if (activate)
     {
-        LOG_ERROR("server.loading", "Test31");
         BotDataMgr::UpdateNpcBotData(master->GetGUID(), me->GetEntry(), NPCBOT_UPDATE_SPEC, &spec);
 
         UnsummonAll();
@@ -13299,9 +13299,12 @@ void bot_ai::InitEquips()
     EquipmentInfo const* einfo = sObjectMgr->GetEquipmentInfo(me->GetEntry(), id);
     ASSERT(einfo, "Trying to spawn bot with no equip info!");
 
-        LOG_ERROR("server.loading", "Test32");
     NpcBotData const* npcBotData = BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry());
-    ASSERT(npcBotData, "bot_ai::InitEquips(): data not found!");
+    
+    //LOG_ERROR("server.loading", "InitEquips: {} {}", me->GetEntry(), master->GetGUID().GetCounter());
+
+    if (!npcBotData)
+        return;
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_NPCBOT_EQUIP_BY_ITEM_INSTANCE);
     //        0            1                2      3         4        5      6             7                 8           9           10    11    12         13
@@ -15379,7 +15382,6 @@ bool bot_ai::GlobalUpdate(uint32 diff)
         _saveDisabledSpells = false;
         _saveDisabledSpellsTimer = 5000;
 
-        LOG_ERROR("server.loading", "Test33");
         NpcBotData* npcBotData = const_cast<NpcBotData*>(BotDataMgr::SelectNpcBotData(master->GetGUID(), me->GetEntry()));
         BotDataMgr::UpdateNpcBotData(master->GetGUID(), me->GetEntry(), NPCBOT_UPDATE_DISABLED_SPELLS, &npcBotData->disabled_spells);
     }
@@ -18785,7 +18787,6 @@ void bot_ai::LoadFromOwnerDB() {
 
             // Roles
             _roleMask = Fields[2].Get<uint32>();
-        LOG_ERROR("server.loading", "Test34");
             BotDataMgr::UpdateNpcBotData(master->GetGUID(), me->GetEntry(), NPCBOT_UPDATE_ROLES, &_roleMask);
             shouldUpdateStats = true;
 
@@ -18851,7 +18852,6 @@ void bot_ai::LoadFromOwnerDB() {
 
             _unsavedChanges = false;
 
-        LOG_ERROR("server.loading", "Test35");
             BotDataMgr::UpdateNpcBotData(master->GetGUID(), me->GetEntry(), NPCBOT_UPDATE_EQUIPS, _equips);
 
             // Update visuals
@@ -18861,7 +18861,8 @@ void bot_ai::LoadFromOwnerDB() {
                 trans->SetDuration(500);
                 trans->SetMaxDuration(500);
             }
-        }
+        } else 
+            InitEquips();
     }
 }
 

@@ -142,10 +142,7 @@ void BotDataMgr::LoadNpcBots(bool spawn)
         return;
     }
 
-    uint32 botcounter = 0;
     uint32 datacounter = 0;
-    std::list<uint32> botgrids;
-    QueryResult infores;
     CreatureTemplate const* proto;
     NpcBotData* botData;
     std::list<uint32> entryList;
@@ -180,7 +177,7 @@ void BotDataMgr::LoadNpcBots(bool spawn)
 
     } while (result->NextRow());
 
-    LOG_INFO("server.loading", ">> Loaded {} bot data entries", datacounter);
+    LOG_INFO("server.loading", ">> Loaded {} bot data entries for deletion", datacounter);
 
     if (!spawn)
     {
@@ -191,69 +188,26 @@ void BotDataMgr::LoadNpcBots(bool spawn)
     for (std::list<uint32>::const_iterator itr = entryList.begin(); itr != entryList.end(); ++itr)
     {
         uint32 entry = *itr;
+        
+        CharacterDatabase.DirectExecute("DELETE FROM `characters_npcbot` where entry = {}", entry);
+
         proto = sObjectMgr->GetCreatureTemplate(entry);
         if (!proto)
         {
             LOG_ERROR("server.loading", "Cannot find creature_template entry for npcbot (id: {})!", entry);
             continue;
         }
-        //                                     1     2    3           4            5           6
-        infores = WorldDatabase.Query("SELECT guid, map, position_x, position_y"/*, position_z, orientation*/" FROM creature WHERE id1 = {}", entry);
+
+        //                                                  1     2    3           4            5           6
+        QueryResult infores = WorldDatabase.Query("SELECT guid, map, position_x, position_y"/*, position_z, orientation*/" FROM creature WHERE id1 = {}", entry);
         if (!infores)
         {
-            LOG_ERROR("server.loading", "Cannot spawn npcbot {} (id: {}), not found in `creature` table!", proto->Name.c_str(), entry);
+            LOG_ERROR("server.loading", "Cannot delete npcbot {} (id: {}), not found in `creature` table!", proto->Name.c_str(), entry);
             continue;
         }
 
-        field = infores->Fetch();
-        uint32 tableGuid = field[0].Get<uint32>();
-        uint32 mapId = uint32(field[1].Get<uint16>());
-        float pos_x = field[2].Get<float>();
-        float pos_y = field[3].Get<float>();
-        //float pos_z = field[4].GetFloat();
-        //float ori = field[5].GetFloat();
-
-        CellCoord c = Acore::ComputeCellCoord(pos_x, pos_y);
-        GridCoord g = Acore::ComputeGridCoord(pos_x, pos_y);
-        ASSERT(c.IsCoordValid(), "Invalid Cell coord!");
-        ASSERT(g.IsCoordValid(), "Invalid Grid coord!");
-        Map* map = sMapMgr->CreateBaseMap(mapId);
-        map->LoadGrid(pos_x, pos_y);
-
-        ObjectGuid Guid(HighGuid::Unit, entry, tableGuid);
-        LOG_DEBUG("server.loading", "bot {}: spawnId {}, full {}", entry, tableGuid, Guid.ToString().c_str());
-        Creature* bot = map->GetCreature(Guid);
-        if (!bot) //not in map, use storage
-        {
-            //TC_LOG_DEBUG("server.loading", "bot %u: spawnId %u, is not in map on load", entry, tableGuid);
-            typedef Map::CreatureBySpawnIdContainer::const_iterator SpawnIter;
-            std::pair<SpawnIter, SpawnIter> creBounds = map->GetCreatureBySpawnIdStore().equal_range(tableGuid);
-            if (creBounds.first == creBounds.second)
-            {
-                LOG_ERROR("server.loading", "bot {} is not in spawns list, consider re-spawning it!", entry);
-                continue;
-            }
-            bot = creBounds.first->second;
-        }
-        ASSERT(bot);
-        if (!bot->FindMap())
-            LOG_ERROR("server.loading", "bot {} is not in map!", entry);
-        if (!bot->IsInWorld())
-            LOG_ERROR("server.loading", "bot {} is not in world!", entry);
-        if (!bot->IsAlive())
-        {
-            LOG_ERROR("server.loading", "bot {} is dead, respawning!", entry);
-            bot->Respawn();
-        }
-
-        LOG_DEBUG("server.loading", ">> Spawned npcbot {} (id: {}, map: {}, grid: {}, cell: {})", proto->Name.c_str(), entry, mapId, g.GetId(), c.GetId());
-        botgrids.push_back(g.GetId());
-        ++botcounter;
+        WorldDatabase.DirectExecute("DELETE FROM `creature` where id1 = {}", entry);
     }
-
-    botgrids.sort();
-    botgrids.unique();
-    LOG_INFO("server.loading", ">> Spawned {} npcbot(s) within {} grid(s) in {} ms", botcounter, uint32(botgrids.size()), GetMSTimeDiffToNow(botoldMSTime));
 
     allBotsLoaded = true;
 }
@@ -307,7 +261,7 @@ void BotDataMgr::AddNpcBotData(ObjectGuid owner_guid, uint32 entry, uint32 roles
     if (itr0 == _botsDataByGUID.end())
         _botsDataByGUID[owner] = NpcBotDataMap();
 
-    LOG_ERROR("server.loading", "TestXX_1_1: {}", owner);
+    //LOG_ERROR("server.loading", "AddNpcBotData: {} {}", entry, owner);
 
     NpcBotDataMap::iterator itr = _botsDataByGUID[owner].find(entry);
     if (itr == _botsDataByGUID[owner].end())
@@ -332,12 +286,10 @@ void BotDataMgr::AddNpcBotData(ObjectGuid owner_guid, uint32 entry, uint32 roles
 NpcBotData const* BotDataMgr::SelectNpcBotData(ObjectGuid owner_guid, uint32 entry)
 {
     uint32 owner = owner_guid.GetCounter();
-    LOG_ERROR("server.loading", "Test22_1_1: {}", owner);
+    //LOG_ERROR("server.loading", "SelectNpcBotData: {} {}", entry, owner);
     NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
     if (itr0 == _botsDataByGUID.end())
         return nullptr;
-
-    LOG_ERROR("server.loading", "Test22_1_2");
 
     NpcBotDataMap::const_iterator itr = _botsDataByGUID[owner].find(entry);
     return itr != _botsDataByGUID[owner].end() ? itr->second : nullptr;
@@ -345,6 +297,7 @@ NpcBotData const* BotDataMgr::SelectNpcBotData(ObjectGuid owner_guid, uint32 ent
 void BotDataMgr::UpdateNpcBotData(ObjectGuid owner_guid, uint32 entry, NpcBotDataUpdateType updateType, void* data)
 {
     uint32 owner = owner_guid.GetCounter();
+    //LOG_ERROR("server.loading", "UpdateNpcBotData: {} {} {}", updateType, entry, owner);
     NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
     if (itr0 == _botsDataByGUID.end())
         return;

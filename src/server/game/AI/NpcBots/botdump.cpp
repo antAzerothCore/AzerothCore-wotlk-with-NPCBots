@@ -762,7 +762,6 @@ bool NPCBotsDump::GetDump(std::string& dump)
 
 BotDataVerificationResult NPCBotsDump::VerifyWriteData(uint32 entry) const
 {
-    LOG_ERROR("server.loading", "Test12");
     NpcBotData const* botData;// = BotDataMgr::SelectNpcBotData(entry);
 
     //bot of this entry is not spawned
@@ -817,7 +816,6 @@ std::string const EscapedString(char const* cstr)
 
 void NPCBotsDump::AppendBotNPCBotData(BotStringTransaction* trans, uint32 entry) const
 {
-    LOG_ERROR("server.loading", "Test11");
     NpcBotData const* botData;// = BotDataMgr::SelectNpcBotData(entry);
     ASSERT(botData);
 
@@ -853,7 +851,6 @@ void NPCBotsDump::AppendBotNPCBotData(BotStringTransaction* trans, uint32 entry)
 
 void NPCBotsDump::AppendBotNPCBotTransmogData(BotStringTransaction* trans, uint32 entry) const
 {
-    LOG_ERROR("server.loading", "Test10");
     NpcBotData const* botData; // = BotDataMgr::SelectNpcBotData(entry);
     ASSERT(botData);
 
@@ -902,7 +899,6 @@ void NPCBotsDump::AppendBotNPCBotTransmogData(BotStringTransaction* trans, uint3
 
 void NPCBotsDump::AppendBotEquipsData(BotStringTransaction* trans, uint32 entry) const
 {
-    LOG_ERROR("server.loading", "Test9");
     NpcBotData const* botData; // = BotDataMgr::SelectNpcBotData(entry);
     ASSERT(botData);
 
