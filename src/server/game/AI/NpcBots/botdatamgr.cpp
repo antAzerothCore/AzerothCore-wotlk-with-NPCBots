@@ -209,6 +209,8 @@ void BotDataMgr::LoadNpcBots(bool spawn)
         WorldDatabase.DirectExecute("DELETE FROM `creature` where id1 = {}", entry);
     }
 
+    _botsDataByGUID.clear();
+
     allBotsLoaded = true;
 }
 
