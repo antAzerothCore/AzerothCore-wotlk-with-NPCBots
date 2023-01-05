@@ -11084,7 +11084,7 @@ bool bot_ai::_unequip(uint8 slot, ObjectGuid receiver)
     RemoveItemBonuses(slot);
     ApplyItemSetBonuses(item, false);
 
-    LOG_ERROR("server.loading", "({}) Unequip: {} ", receiver.GetCounter(), slot);
+    //LOG_ERROR("server.loading", "({}) Unequip: {} ", receiver.GetCounter(), slot);
 
     //hand old weapon to master
     if (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != itemId)
@@ -11237,7 +11237,7 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
             me->SetAttackTime(WeaponAttackType(slot), delay); //set attack speed
     }
 
-    if (master) LOG_ERROR("server.loading", "({}) Equip: {} {}", master->GetGUID().GetCounter(), slot, newItemId);
+    //if (master) LOG_ERROR("server.loading", "({}) Equip: {} {}", master->GetGUID().GetCounter(), slot, newItemId);
 
     _updateEquips(slot, newItem);
 
