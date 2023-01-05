@@ -1258,8 +1258,8 @@ bool BotMgr::RemoveBotFromGroup(Creature* bot)
     gr->RemoveMember(bot->GetGUID());
 
     //if removed from group while in instance / bg then remove from world immediately
-    if (bot->IsInWorld() && RestrictBots(bot, true))
-        TeleportBot(bot, bot->GetMap(), bot);
+    //if (bot->IsInWorld() && RestrictBots(bot, true))
+        //TeleportBot(bot, bot->GetMap(), bot);
 
     return true;
 }
