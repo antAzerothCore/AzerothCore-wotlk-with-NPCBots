@@ -200,6 +200,7 @@ public:
         void HandleEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
         {
             Creature* target = GetUnitOwner()->ToCreature();
+            target->SetFaction(FACTION_FRIENDLY);
             target->SetReactState(REACT_PASSIVE);
             target->SetImmuneToAll(true);
         }
@@ -207,6 +208,7 @@ public:
         void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
         {
             Creature* target = GetUnitOwner()->ToCreature();
+            target->SetFaction(FACTION_CREATURE);
             target->SetReactState(REACT_AGGRESSIVE);
             target->SetImmuneToAll(false);
         }
