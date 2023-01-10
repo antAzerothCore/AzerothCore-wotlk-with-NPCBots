@@ -45,8 +45,8 @@ enum rbac
     RBAC_PERM_COMMAND_NPCBOT_REVIVE                          = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_RELOADCONFIG                    = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_INFO                            = SEC_PLAYER,
-    RBAC_PERM_COMMAND_NPCBOT_HIDE                            = SEC_PLAYER,
-    RBAC_PERM_COMMAND_NPCBOT_UNHIDE                          = SEC_PLAYER,
+    RBAC_PERM_COMMAND_NPCBOT_HIDE                            = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_UNHIDE                          = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_RECALL                          = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_KILL                            = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_DEBUG_RAID                      = SEC_GAMEMASTER,
@@ -1856,6 +1856,13 @@ public:
         }
 
         Player* chr = handler->GetSession()->GetPlayer();
+
+        if (!chr->IsAlive())
+        {
+            handler->SendSysMessage("Cannot spawn bots when defeated!");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
         
         //LOG_ERROR("server.loading", "NpcBotSpawn: {} {}", id, chr->GetGUID().GetCounter());
 
@@ -2313,6 +2320,15 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+            
+        Map* map = owner->GetMap();
+
+        if (map->Instanceable())
+        {
+            handler->SendSysMessage("Cannot remove bots in instances!");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
 
         Player* master = u->ToPlayer();
         if (master)
@@ -2372,6 +2388,13 @@ public:
         {
             handler->SendSysMessage(".npcbot revive");
             handler->SendSysMessage("Revives selected npcbot. If player is selected, revives all selected player's npcbots");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (owner->IsInCombat() || !owner->IsAlive())
+        {
+            handler->SendSysMessage("Cannot revive bots in combat or when defeated!");
             handler->SetSentErrorMessage(true);
             return false;
         }
