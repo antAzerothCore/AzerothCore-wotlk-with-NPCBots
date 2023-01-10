@@ -3755,8 +3755,8 @@ void ObjectMgr::LoadPlayerInfo()
                         {
                             if (classMask == 0 || ((1 << (classIndex - 1)) & classMask))
                             {
-                                //if (!GetSkillRaceClassInfo(skill.SkillId, raceIndex, classIndex))
-                                    //continue;
+                                if (!GetSkillRaceClassInfo(skill.SkillId, raceIndex, classIndex))
+                                    continue;
 
                                 if (PlayerInfo* info = _playerInfo[raceIndex][classIndex])
                                 {
@@ -8474,22 +8474,20 @@ int32 ObjectMgr::GetBaseReputationOf(FactionEntry const* factionEntry, uint8 rac
     return 0;
 }
 
-SkillRangeType GetSkillRangeType(SkillRaceClassInfoEntry const* rcEntry, uint32 SkillID)
+SkillRangeType GetSkillRangeType(SkillRaceClassInfoEntry const* rcEntry)
 {
-    if (!SkillID && rcEntry) SkillID = rcEntry->SkillID;
-    
-    SkillLineEntry const* skill = sSkillLineStore.LookupEntry(SkillID);
+    SkillLineEntry const* skill = sSkillLineStore.LookupEntry(rcEntry->SkillID);
     if (!skill)
     {
         return SKILL_RANGE_NONE;
     }
 
-    if (rcEntry && sSkillTiersStore.LookupEntry(rcEntry->SkillTierID))
+    if (sSkillTiersStore.LookupEntry(rcEntry->SkillTierID))
     {
         return SKILL_RANGE_RANK;
     }
 
-    if (SkillID == SKILL_RUNEFORGING)
+    if (rcEntry->SkillID == SKILL_RUNEFORGING)
     {
         return SKILL_RANGE_MONO;
     }

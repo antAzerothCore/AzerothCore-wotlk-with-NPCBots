@@ -11925,11 +11925,11 @@ void Player::LearnDefaultSkills()
 void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
 {
     SkillRaceClassInfoEntry const* rcInfo = GetSkillRaceClassInfo(skillId, getRace(), getClass());
-    //if (!rcInfo)
-        //return;
+    if (!rcInfo)
+        return;
 
     LOG_DEBUG("entities.player.loading", "PLAYER (Class: {} Race: {}): Adding initial skill, id = {}", uint32(getClass()), uint32(getRace()), skillId);
-    switch (GetSkillRangeType(rcInfo, skillId))
+    switch (GetSkillRangeType(rcInfo))
     {
         case SKILL_RANGE_LANGUAGE:
             SetSkill(skillId, 0, 300, 300);
@@ -11942,7 +11942,7 @@ void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
             {
                 skillValue = maxValue;
             }
-            else if (rcInfo && rcInfo->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE)
+            else if (rcInfo->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE)
             {
                 skillValue = maxValue;
             }
@@ -11967,7 +11967,7 @@ void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
             break;
         case SKILL_RANGE_RANK:
         {
-            if (!rank || !rcInfo)
+            if (!rank)
             {
                 break;
             }
@@ -13740,14 +13740,14 @@ void Player::_LoadSkills(PreparedQueryResult result)
             uint16 max      = fields[2].Get<uint16>();
 
             SkillRaceClassInfoEntry const* rcEntry = GetSkillRaceClassInfo(skill, getRace(), getClass());
-            //if (!rcEntry)
-            //{
-                //LOG_ERROR("entities.player", "Character {} has skill {} that does not exist.", GetGUID().ToString(), skill);
-                //continue;
-            //}
+            if (!rcEntry)
+            {
+                LOG_ERROR("entities.player", "Character {} has skill {} that does not exist.", GetGUID().ToString(), skill);
+                continue;
+            }
 
             // set fixed skill ranges
-            switch (GetSkillRangeType(rcEntry, skill))
+            switch (GetSkillRangeType(rcEntry))
             {
                 case SKILL_RANGE_LANGUAGE:                      // 300..300
                     value = max = 300;
@@ -13776,16 +13776,14 @@ void Player::_LoadSkills(PreparedQueryResult result)
             }
 
             uint16 skillStep = 0;
-            if (rcEntry) {
-                if (SkillTiersEntry const* skillTier = sSkillTiersStore.LookupEntry(rcEntry->SkillTierID))
+            if (SkillTiersEntry const* skillTier = sSkillTiersStore.LookupEntry(rcEntry->SkillTierID))
+            {
+                for (uint32 i = 0; i < MAX_SKILL_STEP; ++i)
                 {
-                    for (uint32 i = 0; i < MAX_SKILL_STEP; ++i)
+                    if (skillTier->Value[skillStep] == max)
                     {
-                        if (skillTier->Value[skillStep] == max)
-                        {
-                            skillStep = i + 1;
-                            break;
-                        }
+                        skillStep = i + 1;
+                        break;
                     }
                 }
             }
