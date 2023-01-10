@@ -1056,7 +1056,7 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
     // Remove From DB on logout or dismiss
     if (removetype == BOT_REMOVE_LOGOUT || removetype == BOT_REMOVE_DISMISS) {
         const_cast<Creature*>(bot)->CombatStop();
-        bot->GetBotAI()->Reset();
+        //bot->GetBotAI()->Reset();
         bot->GetBotAI()->canUpdate = false;
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();

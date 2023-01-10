@@ -37,12 +37,12 @@ enum rbac
 {
     RBAC_PERM_COMMAND_NPCBOT                                 = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_ADD                             = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_REMOVE                          = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_SPAWN                           = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_MOVE                            = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_REMOVE                          = SEC_PLAYER,
+    RBAC_PERM_COMMAND_NPCBOT_SPAWN                           = SEC_PLAYER,
+    RBAC_PERM_COMMAND_NPCBOT_MOVE                            = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_DELETE                          = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_LOOKUP                          = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_REVIVE                          = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_REVIVE                          = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_RELOADCONFIG                    = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_INFO                            = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_HIDE                            = SEC_PLAYER,
@@ -2186,7 +2186,8 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-
+        
+        BotMgr* mgr = owner->GetBotMgr();
         if (!mgr)
             mgr = new BotMgr(const_cast<Player*>(owner));
 
