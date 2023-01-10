@@ -1054,6 +1054,9 @@ public:
         }
         if (Creature* bot = owner->GetBotMgr()->GetBot(guid))
         {
+            if (bot->GetBotOwner() != owner)
+                return false;
+
             owner->GetBotMgr()->KillBot(bot);
             return true;
         }
@@ -2314,6 +2317,9 @@ public:
         Player* master = u->ToPlayer();
         if (master)
         {
+            if (master != owner)
+                return false;
+                
             if (master->HaveBot())
             {
                 master->RemoveAllBots(BOT_REMOVE_DISMISS);
@@ -2337,6 +2343,10 @@ public:
         if (cre && cre->IsNPCBot() && !cre->IsFreeBot())
         {
             master = cre->GetBotOwner();
+            
+            if (master != owner)
+                return false;
+
             master->GetBotMgr()->RemoveBot(cre->GetGUID(), BOT_REMOVE_DISMISS);
             if (master->GetBotMgr()->GetBot(cre->GetGUID()) == nullptr)
             {
@@ -2368,6 +2378,9 @@ public:
 
         if (Player* master = u->ToPlayer())
         {
+            if (master != owner)
+                return false;
+
             if (!master->HaveBot())
             {
                 handler->PSendSysMessage("%s has no npcbots!", master->GetName().c_str());
@@ -2381,6 +2394,9 @@ public:
         }
         else if (Creature* bot = u->ToCreature())
         {
+            if (bot->GetBotOwner() != owner)
+                return false;
+
             if (bot->GetBotAI())
             {
                 if (bot->IsAlive())
