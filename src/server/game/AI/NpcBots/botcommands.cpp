@@ -41,7 +41,7 @@ enum rbac
     RBAC_PERM_COMMAND_NPCBOT_SPAWN                           = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_MOVE                            = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_DELETE                          = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_LOOKUP                          = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_LOOKUP                          = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_REVIVE                          = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_RELOADCONFIG                    = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_INFO                            = SEC_PLAYER,
