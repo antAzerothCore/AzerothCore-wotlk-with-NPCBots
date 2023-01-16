@@ -1261,6 +1261,9 @@ public:
 
             uint8 lvl = me->GetLevel();
             float fdamage = float(damage);
+            
+            // hack
+            fdamage *= 0.25f;
 
             //apply bonus damage mods
             float pctbonus = 0.0f;
@@ -1352,6 +1355,9 @@ public:
             uint8 lvl = me->GetLevel();
             float fdamage = float(damage);
             float flat_mod = 0.f;
+
+            // hack
+            fdamage *= 0.25f;
 
             //2) apply bonus damage mods
             float pctbonus = 0.0f;
