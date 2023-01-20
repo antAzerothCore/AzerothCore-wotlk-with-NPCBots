@@ -2896,7 +2896,7 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
     // Cap skillDiff to 0 (0 levels) - prevents gray mobs from having increased missing chance.
     // Tweaked for open world scaling
     int32 skillDiff = int32(GetWeaponSkillValue(attType, victim)) - int32(victim->GetMaxSkillValueForLevel(this));
-    if (victim->GetTypeId() == TYPEID_PLAYER && skillDiff < 0) skillDiff = 0;
+    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && skillDiff < 0) skillDiff = 0;
 
     float miss_chance = MeleeSpellMissChance(victim, attType, skillDiff, 0);
 
@@ -3324,7 +3324,7 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     
     // Cap skillDiff to 0 (0 levels) - prevents gray mobs from having increased missing chance.
     // Tweaked for open world scaling
-    if (victim->GetTypeId() == TYPEID_PLAYER && skillDiff < 0) skillDiff = 0;
+    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && skillDiff < 0) skillDiff = 0;
 
     uint32 roll = urand (0, 10000);
 
@@ -3504,7 +3504,7 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     
     // Cap levelDiff to 0 - prevents gray mobs from having increased missing chance.
     // Tweaked for open world scaling
-    if (victim->GetTypeId() == TYPEID_PLAYER && levelDiff > 0) levelDiff = 0;
+    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && levelDiff > 0) levelDiff = 0;
 
     int32 MISS_CHANCE_MULTIPLIER;
     if (sWorld->getBoolConfig(CONFIG_MISS_CHANCE_MULTIPLIER_ONLY_FOR_PLAYERS) && GetTypeId() != TYPEID_PLAYER) // keep it as it was originally (7 and 11)
