@@ -642,7 +642,7 @@ void WorldSession::LogoutPlayer(bool save)
 
         // remove player from the group if he is:
         // a) in group; b) not in raid group; c) logging out normally (not being kicked or disconnected) d) LeaveGroupOnLogout is enabled
-        if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && !_player->GetGroup()->isLFGGroup() && m_Socket && sWorld->getBoolConfig(CONFIG_LEAVE_GROUP_ON_LOGOUT))
+        if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && !_player->GetGroup()->isLFGGroup() && !(_player->GetMap()->IsRaidOrHeroicDungeon() || _player->GetMap()->IsDungeon()) && m_Socket && sWorld->getBoolConfig(CONFIG_LEAVE_GROUP_ON_LOGOUT))
             _player->RemoveFromGroup();
 
         // pussywizard: checked second time after being removed from a group
