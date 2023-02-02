@@ -1263,7 +1263,7 @@ public:
             float fdamage = float(damage);
             
             // hack
-            //fdamage *= 0.25f;
+            fdamage *= 0.35f;
 
             //apply bonus damage mods
             float pctbonus = 0.0f;

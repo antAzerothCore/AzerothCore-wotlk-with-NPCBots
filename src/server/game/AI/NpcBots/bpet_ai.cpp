@@ -929,7 +929,7 @@ void bot_pet_ai::SetPetStats(bool force)
                     amount += 6;
 
                 // hack
-                amount *= 0.25f;
+                amount *= 0.35f;
                 break;
             default:
                 break;
