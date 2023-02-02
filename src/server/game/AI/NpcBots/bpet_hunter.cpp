@@ -814,7 +814,7 @@ public:
             float fdamage = float(damage);
 
             // hack
-            fdamage *= 0.25f;
+            fdamage *= 0.5f;
 
             damage = int32(fdamage);
         }

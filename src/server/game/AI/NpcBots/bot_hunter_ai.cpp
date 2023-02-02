@@ -1357,7 +1357,7 @@ public:
             float flat_mod = 0.f;
 
             // hack
-            fdamage *= 0.25f;
+            fdamage *= 0.5f;
 
             //2) apply bonus damage mods
             float pctbonus = 0.0f;
