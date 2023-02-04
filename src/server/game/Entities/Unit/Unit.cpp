@@ -18905,6 +18905,9 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
         {
             if (Player* killed = victim->ToPlayer())
                 sScriptMgr->OnPlayerKilledByCreature(killerCre, killed);
+            
+            if (killerCre->IsNPCBotOrPet() && killerCre->GetBotOwner())
+                if (Creature* killedCre = victim->ToCreature()) sScriptMgr->OnCreatureKill(killerCre->GetBotOwner(), killedCre);
         }
     }
 }
