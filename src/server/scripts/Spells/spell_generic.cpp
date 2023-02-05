@@ -137,7 +137,7 @@ class spell_the_flag_of_ownership : public SpellScript
             return;
         caster->CastSpell(target, 52605, true);
         char buff[100];
-        sprintf(buff, "%s plants the Flag of Ownership in the corpse of %s.", caster->GetName().c_str(), target->GetName().c_str());
+        snprintf(buff, sizeof(buff), "%s plants the Flag of Ownership in the corpse of %s.", caster->GetName().c_str(), target->GetName().c_str());
         caster->TextEmote(buff, caster);
         haveTarget = true;
     }
@@ -2364,7 +2364,7 @@ class spell_gen_vehicle_scaling_aura: public AuraScript
     bool Load() override
     {
         //npcbot
-        if (GetCaster() && GetCaster()->GetTypeId() == TYPEID_UNIT && GetCaster()->ToCreature()->IsNPCBot() && GetOwner()->GetTypeId() == TYPEID_UNIT)
+        if (GetCaster() && GetCaster()->IsNPCBot() && GetOwner()->GetTypeId() == TYPEID_UNIT)
             return true;
         //end npcbot
         return GetCaster() && GetCaster()->GetTypeId() == TYPEID_PLAYER && GetOwner()->GetTypeId() == TYPEID_UNIT;
@@ -3509,7 +3509,7 @@ class spell_gen_tournament_pennant : public AuraScript
     bool Load() override
     {
         //npcbot
-        if (GetCaster() && GetCaster()->GetTypeId() == TYPEID_UNIT && GetCaster()->ToCreature()->IsNPCBot())
+        if (GetCaster() && GetCaster()->IsNPCBot())
             return true;
         //end npcbot
 

@@ -1103,7 +1103,7 @@ void Creature::DoFleeToGetAssistance()
         if (!creature)
             //SetFeared(true, GetVictim()->GetGUID(), 0, sWorld->getIntConfig(CONFIG_CREATURE_FAMILY_FLEE_DELAY));
             //TODO: use 31365
-            SetControlled(true, UNIT_STATE_FLEEING);
+            SetControlled(true, UNIT_STATE_FLEEING, GetVictim());
         else
             GetMotionMaster()->MoveSeekAssistance(creature->GetPositionX(), creature->GetPositionY(), creature->GetPositionZ());
     }
@@ -2218,22 +2218,24 @@ void Creature::DespawnOrUnsummon(Milliseconds msTimeToDespawn /*= 0*/, Seconds f
         ForcedDespawn(msTimeToDespawn.count(), forcedRespawnTimer);
 }
 
-void Creature::DespawnOnEvade()
+void Creature::DespawnOnEvade(Seconds respawnDelay)
 {
-    SetVisible(false);
     AI()->SummonedCreatureDespawnAll();
-}
 
-void Creature::RespawnOnEvade()
-{
-    SetVisible(true);
-    UpdateMovementFlags();
-    AI()->Reset();
-    AI()->JustReachedHome();
-    if (IsVehicle()) // use the same sequence of addtoworld, aireset may remove all summons!
+    if (respawnDelay < 2s)
     {
-        GetVehicleKit()->Reset(true);
+        LOG_WARN("entities.unit", "DespawnOnEvade called with delay of {} seconds, defaulting to 2.", respawnDelay.count());
+        respawnDelay = 2s;
     }
+
+    if (TempSummon* whoSummon = ToTempSummon())
+    {
+        LOG_WARN("entities.unit", "DespawnOnEvade called on a temporary summon.");
+        whoSummon->UnSummon();
+        return;
+    }
+
+    DespawnOrUnsummon(Milliseconds(0), respawnDelay);
 }
 
 void Creature::InitializeReactState()
@@ -3980,10 +3982,10 @@ void Creature::ApplyCreatureSpellChanceOfSuccessMods(SpellInfo const* spellInfo,
         bot_AI->ApplyBotSpellChanceOfSuccessMods(spellInfo, chance);
 }
 
-void Creature::ApplyCreatureEffectMods(WorldObject const* wtarget, SpellInfo const* spellInfo, uint8 effIndex, float& value) const
+void Creature::ApplyCreatureEffectMods(SpellInfo const* spellInfo, uint8 effIndex, float& value) const
 {
     if (bot_AI)
-        bot_AI->ApplyBotEffectMods(wtarget, spellInfo, effIndex, value);
+        bot_AI->ApplyBotEffectMods(spellInfo, effIndex, value);
 }
 
 void Creature::OnBotSummon(Creature* summon)
@@ -4145,11 +4147,5 @@ Item* Creature::GetBotEquipsByGuid(ObjectGuid itemGuid) const
 float Creature::GetBotAverageItemLevel() const
 {
     return bot_AI ? bot_AI->GetAverageItemLevel() : 0.0f;
-}
-
-//static
-bool Creature::IsBotCustomSpell(uint32 spellId)
-{
-    return bot_ai::IsBotCustomSpell(spellId);
 }
 //END NPCBOT

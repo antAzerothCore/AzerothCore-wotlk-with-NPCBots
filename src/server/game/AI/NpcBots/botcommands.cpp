@@ -459,11 +459,19 @@ public:
             { "free",       HandleNpcBotDeleteFreeCommand,          rbac::RBAC_PERM_COMMAND_NPCBOT_DELETE,             Console::Yes },
         };
 
+        static ChatCommandTable npcbotSendToPointCommandTable =
+        {
+            { "",           HandleNpcBotSendToPointCommand,         rbac::RBAC_PERM_COMMAND_NPCBOT_SEND,               Console::No  },
+            { "set",        HandleNpcBotSendToPointSetCommand,      rbac::RBAC_PERM_COMMAND_NPCBOT_SEND,               Console::No  },
+        };
+
         static ChatCommandTable npcbotSendToCommandTable =
         {
             { "",           HandleNpcBotSendToCommand,              rbac::RBAC_PERM_COMMAND_NPCBOT_SEND,               Console::No  },
             { "last",       HandleNpcBotSendToLastCommand,          rbac::RBAC_PERM_COMMAND_NPCBOT_SEND,               Console::No  },
+            { "point",      npcbotSendToPointCommandTable                                                                           },
         };
+
         static ChatCommandTable npcbotCommandTable =
         {
             //{ "debug",      npcbotDebugCommandTable                                                                                 },
@@ -1069,7 +1077,7 @@ public:
     static bool HandleNpcBotSendToCommand(ChatHandler* handler, Optional<std::vector<std::string_view>> names)
     {
         static auto return_syntax = [](ChatHandler* chandler) -> bool {
-            chandler->SendSysMessage("Syntax: .npcbot sendto [#names...]");
+            chandler->SendSysMessage("Syntax: .npcbot sendto #names...");
             chandler->SendSysMessage("Makes selected/named bot(s) wait 30 sec for your next DEST spell, assume that position and hold it");
             chandler->SendSysMessage("Max distance is 70 yds");
             chandler->SetSentErrorMessage(true);
@@ -1093,7 +1101,7 @@ public:
         {
             Unit const* target = handler->getSelectedCreature();
             Creature const* bot = target ? owner->GetBotMgr()->GetBot(target->GetGUID()) : nullptr;
-            if (bot && bot->IsAlive())
+            if (bot && bot->IsAlive() && !bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_FULLSTOP))
             {
                 bot->GetBotAI()->SetBotAwaitState(BOT_AWAIT_SEND);
                 return return_success(handler, { bot->GetName() });
@@ -1105,7 +1113,7 @@ public:
         for (decltype(names)::value_type::value_type name : *names)
         {
             Creature const* bot = owner->GetBotMgr()->GetBotByName(name);
-            if (bot && bot->IsAlive())
+            if (bot && bot->IsAlive() && !bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_FULLSTOP))
             {
                 ++count;
                 bot->GetBotAI()->SetBotAwaitState(BOT_AWAIT_SEND);
@@ -1125,7 +1133,7 @@ public:
     static bool HandleNpcBotSendToLastCommand(ChatHandler* handler, Optional<std::vector<std::string_view>> names)
     {
         static auto return_syntax = [](ChatHandler* chandler) -> bool {
-            chandler->SendSysMessage("Syntax: .npcbot sendto last [#names...]");
+            chandler->SendSysMessage("Syntax: .npcbot sendto last #names...");
             chandler->SendSysMessage("Makes selected/named bot(s) assume previous position they were sent from");
             chandler->SendSysMessage("This will cancel current sendto await state");
             chandler->SendSysMessage("Max distance is 70 yds");
@@ -1150,9 +1158,65 @@ public:
         {
             Unit const* target = handler->getSelectedCreature();
             Creature const* bot = target ? owner->GetBotMgr()->GetBot(target->GetGUID()) : nullptr;
-            if (bot && bot->IsAlive())
+            if (bot && bot->IsAlive() && !bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_FULLSTOP))
             {
                 bot->GetBotAI()->MoveToLastSendPosition();
+                return return_success(handler, { bot->GetName() });
+            }
+            return return_syntax(handler);
+        }
+
+        uint32 count = 0;
+        for (decltype(names)::value_type::value_type name : *names)
+        {
+            Creature const* bot = owner->GetBotMgr()->GetBotByName(name);
+            if (bot && bot->IsAlive() && !bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_FULLSTOP))
+            {
+                ++count;
+                bot->GetBotAI()->MoveToLastSendPosition();
+            }
+        }
+
+        if (count == 0)
+        {
+            handler->PSendSysMessage("Unable to send any of %u bots!", uint32(names->size()));
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        return return_success(handler, { count });
+    }
+
+    static bool HandleNpcBotSendToPointSetCommand(ChatHandler* handler, Optional<uint32> point_id, Optional<std::vector<std::string_view>> names)
+    {
+        static auto return_syntax = [](ChatHandler* chandler) -> bool {
+            chandler->SendSysMessage("Syntax: .npcbot sendto point set #number #names...");
+            chandler->SendSysMessage("Marks selected/named bots' current position as send point by #number");
+            chandler->PSendSysMessage("Point number must be in range 1 ... %u", uint32(MAX_SEND_POINTS));
+            chandler->SetSentErrorMessage(true);
+            return false;
+        };
+
+        static auto return_success = [&](ChatHandler* chandler, Variant<std::string_view, uint32> name_or_count) -> bool {
+            if (name_or_count.holds_alternative<uint32>())
+                chandler->PSendSysMessage("Marked send point %u for %u bot(s)", *point_id, name_or_count.get<uint32>());
+            else
+                chandler->PSendSysMessage("Marked send point %u for %s", *point_id, name_or_count.get<std::string_view>().data());
+            return true;
+        };
+
+        Player const* owner = handler->GetSession()->GetPlayer();
+
+        if (!point_id || !*point_id || *point_id > MAX_SEND_POINTS || !owner->HaveBot())
+            return return_syntax(handler);
+
+        if (!names || names->empty())
+        {
+            Unit const* target = handler->getSelectedCreature();
+            Creature const* bot = target ? owner->GetBotMgr()->GetBot(target->GetGUID()) : nullptr;
+            if (bot && bot->IsAlive())
+            {
+                bot->GetBotAI()->MarkSendPosition(*point_id - 1);
                 return return_success(handler, { bot->GetName() });
             }
             return return_syntax(handler);
@@ -1165,7 +1229,64 @@ public:
             if (bot && bot->IsAlive())
             {
                 ++count;
-                bot->GetBotAI()->MoveToLastSendPosition();
+                bot->GetBotAI()->MarkSendPosition(*point_id - 1);
+            }
+        }
+
+        if (count == 0)
+        {
+            handler->PSendSysMessage("Unable to mark send point for any of %u bots!", uint32(names->size()));
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        return return_success(handler, { count });
+    }
+
+    static bool HandleNpcBotSendToPointCommand(ChatHandler* handler, Optional<uint32> point_id, Optional<std::vector<std::string_view>> names)
+    {
+        static auto return_syntax = [](ChatHandler* chandler) -> bool {
+            chandler->SendSysMessage("Syntax: .npcbot sendto point #number #names...");
+            chandler->SendSysMessage("Makes selected/named bot(s) assume previously set point by #number");
+            chandler->SendSysMessage("This will cancel current sendto await state");
+            chandler->SendSysMessage("Max distance is 70 yds");
+            chandler->SetSentErrorMessage(true);
+            return false;
+        };
+
+        static auto return_success = [&](ChatHandler* chandler, Variant<std::string_view, uint32> name_or_count) -> bool {
+            if (name_or_count.holds_alternative<uint32>())
+                chandler->PSendSysMessage("Moving %u bot(s) to point %u...", name_or_count.get<uint32>(), *point_id);
+            else
+                chandler->PSendSysMessage("Moving %s to point %u...", name_or_count.get<std::string_view>().data(), *point_id);
+            return true;
+        };
+
+        Player const* owner = handler->GetSession()->GetPlayer();
+
+        if (!point_id || !*point_id || *point_id > MAX_SEND_POINTS || !owner->HaveBot())
+            return return_syntax(handler);
+
+        if (!names || names->empty())
+        {
+            Unit const* target = handler->getSelectedCreature();
+            Creature const* bot = target ? owner->GetBotMgr()->GetBot(target->GetGUID()) : nullptr;
+            if (bot && bot->IsAlive() && !bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_FULLSTOP))
+            {
+                bot->GetBotAI()->MoveToSendPosition(*point_id - 1);
+                return return_success(handler, { bot->GetName() });
+            }
+            return return_syntax(handler);
+        }
+
+        uint32 count = 0;
+        for (decltype(names)::value_type::value_type name : *names)
+        {
+            Creature const* bot = owner->GetBotMgr()->GetBotByName(name);
+            if (bot && bot->IsAlive() && !bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_FULLSTOP))
+            {
+                ++count;
+                bot->GetBotAI()->MoveToSendPosition(*point_id - 1);
             }
         }
 
@@ -2089,7 +2210,7 @@ public:
         if (guidvec.empty())
             return true;
 
-        handler->PSendSysMessage("%u unbound bots:", uint32(guidvec.size()));
+        handler->PSendSysMessage("%u inactive bots:", uint32(guidvec.size()));
         for (ObjectGuid guid : guidvec)
         {
             Creature const* bot = BotDataMgr::FindBot(guid.GetEntry());

@@ -270,8 +270,6 @@ void BotMgr::LoadConfig(bool reload)
         LOG_ERROR("scripts", "BotMgr::LoadConfig: NoDPSTargetIconMask intersects with dps targets flags {:#X}! Removed, new mask: {:#X}",
             uint32(interFlags), uint32(_noDpsTargetIconFlags));
     }
-
-    bot_ai::InitBotCustomSpells();
 }
 
 uint8 BotMgr::GetNpcBotsCount() const
@@ -751,7 +749,7 @@ bool BotMgr::IsBeingResurrected(WorldObject const* corpse) const
 
 void BotMgr::_reviveBot(Creature* bot, WorldLocation* dest)
 {
-    if (bot->IsAlive())
+    if (bot->IsAlive() || !bot->IsInWorld())
         return;
 
     if (!bot->GetBotAI()->IAmFree())
@@ -978,6 +976,8 @@ void BotMgr::CleanupsBeforeBotDelete(ObjectGuid guid, uint8 removetype)
 
     //remove any summons
     bot->GetBotAI()->UnsummonAll();
+    bot->AttackStop();
+    bot->CombatStopWithPets(true);
 
     ASSERT(bot->GetCreatorGUID() == _owner->GetGUID());
     //bot->SetOwnerGUID(ObjectGuid::Empty);
@@ -1076,8 +1076,10 @@ void BotMgr::UnbindBot(ObjectGuid guid)
 }
 BotAddResult BotMgr::RebindBot(Creature* bot)
 {
-    bot->GetBotAI()->RemoveBotCommandState(BOT_COMMAND_UNBIND);
-    return AddBot(bot);
+    BotAddResult res = AddBot(bot);
+    if (res == BOT_ADD_SUCCESS)
+        bot->GetBotAI()->RemoveBotCommandState(BOT_COMMAND_UNBIND);
+    return res;
 }
 
 BotAddResult BotMgr::AddBot(Creature* bot)
@@ -1768,9 +1770,9 @@ void BotMgr::OnBotPartyEngage(Player const* owner)
         owner->GetBotMgr()->PropagateEngageTimers();
 }
 
-void BotMgr::ApplyBotEffectMods(Unit const* caster, Unit const* target, SpellInfo const* spellInfo, uint8 effIndex, float& value)
+void BotMgr::ApplyBotEffectMods(Unit const* caster, SpellInfo const* spellInfo, uint8 effIndex, float& value)
 {
-    caster->ToCreature()->GetBotAI()->ApplyBotEffectMods(target, spellInfo, effIndex, value);
+    caster->ToCreature()->GetBotAI()->ApplyBotEffectMods(spellInfo, effIndex, value);
 }
 
 void BotMgr::ApplyBotThreatMods(Unit const* attacker, SpellInfo const* spellInfo, float& threat)
@@ -1791,6 +1793,14 @@ float BotMgr::GetBotDamageTakenMod(Creature const* bot, bool magic)
 int32 BotMgr::GetBotStat(Creature const* bot, BotStatMods stat)
 {
     return bot->GetBotAI()->GetTotalBotStat(stat);
+}
+
+float BotMgr::GetBotResilience(Creature const* botOrPet)
+{
+    if (botOrPet->IsNPCBot())
+        return botOrPet->GetBotAI()->GetBotResilience();
+
+    return botOrPet->GetBotPetAI()->GetPetsOwner()->GetBotAI()->GetBotResilience();
 }
 
 float BotMgr::GetBotDamageModPhysical()

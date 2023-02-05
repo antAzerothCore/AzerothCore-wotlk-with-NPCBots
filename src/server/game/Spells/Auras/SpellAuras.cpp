@@ -35,6 +35,10 @@
 #include "Vehicle.h"
 #include "WorldPacket.h"
 
+//npcbot
+#include "botspell.h"
+//end npcbot
+
 // TODO: this import is not necessary for compilation and marked as unused by the IDE
 //  however, for some reasons removing it would cause a damn linking issue
 //  there is probably some underlying problem with imports which should properly addressed
@@ -510,7 +514,7 @@ void Aura::_ApplyForTarget(Unit* target, Unit* caster, AuraApplication* auraApp)
             caster->ToCreature()->AddSpellCooldown(m_spellInfo->Id, 0, infinityCooldownDelay);
         }
         //npcbot: infinity cd for bots
-        if (caster && m_spellInfo->IsCooldownStartedOnEvent() && caster->GetTypeId() == TYPEID_UNIT && caster->ToCreature()->IsNPCBot())
+        if (caster && m_spellInfo->IsCooldownStartedOnEvent() && caster->IsNPCBot())
             caster->ToCreature()->AddBotSpellCooldown(m_spellInfo->Id, std::numeric_limits<uint32>::max());
         //end npcbot
     }
@@ -572,7 +576,7 @@ void Aura::_UnapplyForTarget(Unit* target, Unit* caster, AuraApplication* auraAp
         }
     }
     //npcbot: release cd state for bots
-    if (caster && m_spellInfo->IsCooldownStartedOnEvent() && caster->GetTypeId() == TYPEID_UNIT && caster->ToCreature()->IsNPCBot())
+    if (caster && m_spellInfo->IsCooldownStartedOnEvent() && caster->IsNPCBot())
         caster->ToCreature()->ReleaseBotSpellCooldown(m_spellInfo->Id);
     //end npcbot
 }
@@ -985,6 +989,14 @@ uint8 Aura::CalcMaxCharges(Unit* caster) const
     uint32 maxProcCharges = m_spellInfo->ProcCharges;
     if (SpellProcEntry const* procEntry = sSpellMgr->GetSpellProcEntry(GetId()))
         maxProcCharges = procEntry->Charges;
+
+    //npcbot: override spell proc
+    if (caster && caster->IsNPCBot())
+    {
+        if (SpellProcEntry const* procOverride = GetBotSpellProceEntryOverride(GetId()))
+            maxProcCharges = procOverride->Charges;
+    }
+    //end npcbot
 
     if (caster)
         if (Player* modOwner = caster->GetSpellModOwner())
@@ -2084,7 +2096,7 @@ bool Aura::CanStackWith(Aura const* existingAura, bool remove) const
     // check spell group stack rules
     // xinef: this assures us that both spells are in same group!
     //npcbots: do not check stack rules for npcbots
-    if (!(sameCaster && GetOwner()->GetTypeId() == TYPEID_UNIT && GetOwner()->ToCreature()->IsNPCBotOrPet()))
+    if (!(sameCaster && GetOwner()->IsNPCBotOrPet()))
     //end npcbot
     {
     SpellGroupStackFlags stackFlags = sSpellMgr->CheckSpellGroupStackRules(m_spellInfo, existingSpellInfo, remove, IsArea());
@@ -2251,6 +2263,15 @@ void Aura::PrepareProcToTrigger(AuraApplication* aurApp, ProcEventInfo& eventInf
 
     SpellProcEntry const* procEntry = sSpellMgr->GetSpellProcEntry(GetId());
 
+    //npcbot: override spell proc
+    Unit const* caster = aurApp && aurApp->GetBase()->GetCasterGUID().IsCreature() ? aurApp->GetBase()->GetCaster() : nullptr;
+    if (caster && caster->IsNPCBot())
+    {
+        if (SpellProcEntry const* procOverride = GetBotSpellProceEntryOverride(GetId()))
+            procEntry = procOverride;
+    }
+    //end npcbot
+
     ASSERT(procEntry);
 
     // cooldowns should be added to the whole aura (see 51698 area aura)
@@ -2260,6 +2281,16 @@ void Aura::PrepareProcToTrigger(AuraApplication* aurApp, ProcEventInfo& eventInf
 bool Aura::IsProcTriggeredOnEvent(AuraApplication* aurApp, ProcEventInfo& eventInfo) const
 {
     SpellProcEntry const* procEntry = sSpellMgr->GetSpellProcEntry(GetId());
+
+    //npcbot: override spell proc
+    Unit const* caster = aurApp && aurApp->GetBase()->GetCasterGUID().IsCreature() ? aurApp->GetBase()->GetCaster() : nullptr;
+    if (caster && caster->IsNPCBot())
+    {
+        if (SpellProcEntry const* procOverride = GetBotSpellProceEntryOverride(GetId()))
+            procEntry = procOverride;
+    }
+    //end npcbot
+
     // only auras with spell proc entry can trigger proc
     if (!procEntry)
         return false;
@@ -2679,15 +2710,15 @@ bool Aura::CallScriptCheckProcHandlers(AuraApplication const* aurApp, ProcEventI
     return result;
 }
 
-bool Aura::CallScriptCheckAfterProcHandlers(AuraApplication const* aurApp, ProcEventInfo& eventInfo)
+bool Aura::CallScriptAfterCheckProcHandlers(AuraApplication const* aurApp, ProcEventInfo& eventInfo, bool isTriggeredAtSpellProcEvent)
 {
-    bool result = true;
+    bool result = isTriggeredAtSpellProcEvent;
     for (std::list<AuraScript*>::iterator scritr = m_loadedScripts.begin(); scritr != m_loadedScripts.end(); ++scritr)
     {
-        (*scritr)->_PrepareScriptCall(AURA_SCRIPT_HOOK_CHECK_AFTER_PROC, aurApp);
-        std::list<AuraScript::CheckProcHandler>::iterator hookItrEnd = (*scritr)->DoCheckAfterProc.end(), hookItr = (*scritr)->DoCheckAfterProc.begin();
+        (*scritr)->_PrepareScriptCall(AURA_SCRIPT_HOOK_AFTER_CHECK_PROC, aurApp);
+        std::list<AuraScript::AfterCheckProcHandler>::iterator hookItrEnd = (*scritr)->DoAfterCheckProc.end(), hookItr = (*scritr)->DoAfterCheckProc.begin();
         for (; hookItr != hookItrEnd; ++hookItr)
-            result &= hookItr->Call(*scritr, eventInfo);
+            result &= hookItr->Call(*scritr, eventInfo, isTriggeredAtSpellProcEvent);
 
         (*scritr)->_FinishScriptCall();
     }

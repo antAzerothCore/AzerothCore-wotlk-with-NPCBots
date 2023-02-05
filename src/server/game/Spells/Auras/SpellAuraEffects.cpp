@@ -946,7 +946,7 @@ void AuraEffect::UpdatePeriodic(Unit* caster)
                         case 57073:
                         case 61830:
                             //npcbot
-                            if (caster && caster->GetTypeId() == TYPEID_UNIT && caster->ToCreature()->IsNPCBot())
+                            if (caster && caster->IsNPCBot())
                             {
                                 if (AuraEffect* aurEff = GetBase()->GetEffect(EFFECT_0))
                                 {
@@ -2053,7 +2053,7 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
             case FORM_BERSERKERSTANCE:
                 {
                     //npcbot: skip this, handled inside class ai
-                    if (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBot())
+                    if (target->IsNPCBot())
                         break;
                     //end npcbot
                     uint32 Rage_val = 0;
@@ -2118,7 +2118,7 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
         if (!target->CanUseAttackType(BASE_ATTACK))
         {
             //npcbot: skip bots (handled inside AI)
-            if (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBotOrPet())
+            if (target->IsNPCBotOrPet())
             {}
             else
             //end npcbot
@@ -2126,6 +2126,24 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
             {
                 target->ToPlayer()->_ApplyWeaponDamage(EQUIPMENT_SLOT_MAINHAND, pItem->GetTemplate(), nullptr, apply);
             }
+        }
+
+        // Update crit chance for feral forms
+        //npcbot: skip bots (handled inside AI)
+        if (target->IsNPCBotOrPet())
+        {}
+        else
+        //end npcbot
+        switch (form)
+        {
+            case FORM_CAT:
+            case FORM_BEAR:
+            case FORM_DIREBEAR:
+            case FORM_GHOSTWOLF:
+                target->ToPlayer()->UpdateAllCritPercentages();
+                break;
+            default:
+                break;
         }
     }
 
@@ -3056,8 +3074,7 @@ void AuraEffect::HandleAuraModTotalThreat(AuraApplication const* aurApp, uint8 m
     Unit* target = aurApp->GetTarget();
 
     //npcbot: handle for bots
-    if (target->IsAlive() && target->GetTypeId() == TYPEID_UNIT &&
-        target->ToCreature()->IsNPCBotOrPet())
+    if (target->IsAlive() && target->IsNPCBotOrPet())
     {
         Unit* caster = GetCaster();
         if (caster && caster->IsAlive())
@@ -3118,7 +3135,7 @@ void AuraEffect::HandleModFear(AuraApplication const* aurApp, uint8 mode, bool a
 
     Unit* target = aurApp->GetTarget();
 
-    target->SetControlled(apply, UNIT_STATE_FLEEING);
+    target->SetControlled(apply, UNIT_STATE_FLEEING, GetCaster(), true);
 }
 
 void AuraEffect::HandleAuraModStun(AuraApplication const* aurApp, uint8 mode, bool apply) const
@@ -6222,6 +6239,10 @@ void AuraEffect::HandlePeriodicTriggerSpellAuraTick(Unit* target, Unit* caster) 
 
     if (triggeredSpellInfo)
     {
+        //npcbot: override spellInfo
+        triggeredSpellInfo = triggeredSpellInfo->TryGetSpellInfoOverride(caster);
+        //end npcbot
+
         if (Unit* triggerCaster = triggeredSpellInfo->NeedsToBeTriggeredByCaster(m_spellInfo, GetEffIndex()) ? caster : target)
         {
             SpellCastTargets targets;
@@ -6248,6 +6269,10 @@ void AuraEffect::HandlePeriodicTriggerSpellWithValueAuraTick(Unit* target, Unit*
     uint32 triggerSpellId = GetSpellInfo()->Effects[m_effIndex].TriggerSpell;
     if (SpellInfo const* triggeredSpellInfo = sSpellMgr->GetSpellInfo(triggerSpellId))
     {
+        //npcbot: override spellInfo
+        triggeredSpellInfo = triggeredSpellInfo->TryGetSpellInfoOverride(caster);
+        //end npcbot
+
         if (Unit* triggerCaster = triggeredSpellInfo->NeedsToBeTriggeredByCaster(m_spellInfo, GetEffIndex()) ? caster : target)
         {
             SpellCastTargets targets;
@@ -6899,6 +6924,10 @@ void AuraEffect::HandleProcTriggerSpellAuraProc(AuraApplication* aurApp, ProcEve
     {
         LOG_DEBUG("spells.aura", "AuraEffect::HandleProcTriggerSpellAuraProc: Triggering spell {} from aura {} proc", triggeredSpellInfo->Id, GetId());
 
+        //npcbot: override spellInfo
+        triggeredSpellInfo = triggeredSpellInfo->TryGetSpellInfoOverride(aurApp->GetBase()->GetCaster());
+        //end npcbot
+
         //npcbot
         Aura const* triggeredByAura = aurApp->GetBase();
         int32 basepoints0 = 0;
@@ -6954,6 +6983,10 @@ void AuraEffect::HandleProcTriggerSpellWithValueAuraProc(AuraApplication* aurApp
     {
         // used only with EXTRA_LOGS
         (void)triggeredSpellInfo;
+
+        //npcbot: override spellInfo
+        triggeredSpellInfo = triggeredSpellInfo->TryGetSpellInfoOverride(aurApp->GetBase()->GetCaster());
+        //end npcbot
 
         int32 basepoints0 = GetAmount();
         LOG_DEBUG("spells.aura", "AuraEffect::HandleProcTriggerSpellWithValueAuraProc: Triggering spell {} with value {} from aura {} proc", triggeredSpellInfo->Id, basepoints0, GetId());

@@ -2128,8 +2128,7 @@ public:
 
         void SummonBotPet(Unit* target)
         {
-            //if (botPet)
-            //    botPet->ToTempSummon()->UnSummon();
+            UnsummonWolves();
 
             uint32 entry = BOT_PET_SPIRIT_WOLF;
 
@@ -2138,7 +2137,7 @@ public:
                 //Position pos;
 
                 //45 sec duration
-                Creature* myPet = me->SummonCreature(entry, *me, TEMPSUMMON_MANUAL_DESPAWN);
+                Creature* myPet = me->SummonCreature(entry, *me, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 5000);
                 //me->GetNearPoint(myPet, pos.m_positionX, pos.m_positionY, pos.m_positionZ, 0, 2, me->GetOrientation());
                 //myPet->GetMotionMaster()->MovePoint(me->GetMapId(), pos);
                 myPet->SetCreator(master);
@@ -2153,7 +2152,7 @@ public:
                 //botPet = myPet;
 
                 myPet->Attack(target, true);
-                if (!HasBotCommandState(BOT_COMMAND_STAY))
+                if (!HasBotCommandState(BOT_COMMAND_MASK_UNCHASE))
                     myPet->GetMotionMaster()->MoveChase(target);
             }
         }
@@ -2205,17 +2204,23 @@ public:
             }
         }
 
-        void UnsummonAll() override
+        void UnsummonWolves()
         {
-            //if (botPet)
-            //    botPet->ToTempSummon()->UnSummon();
-
             for (uint8 i = 0; i != MAX_WOLVES; ++i)
             {
                 if (_wolves[i])
+                {
                     if (Unit* wo = ObjectAccessor::GetUnit(*me, _wolves[i]))
                         wo->ToTempSummon()->UnSummon();
+                    else
+                        _wolves[i] = ObjectGuid::Empty;
+                }
             }
+        }
+
+        void UnsummonAll() override
+        {
+            UnsummonWolves();
 
             for (uint8 i = 0; i != MAX_TOTEMS; ++i)
             {

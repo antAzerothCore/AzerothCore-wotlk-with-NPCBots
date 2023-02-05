@@ -284,8 +284,7 @@ public:
 
     void DespawnOrUnsummon(Milliseconds msTimeToDespawn, Seconds forcedRespawnTimer);
     void DespawnOrUnsummon(uint32 msTimeToDespawn = 0) { DespawnOrUnsummon(Milliseconds(msTimeToDespawn), 0s); };
-    void DespawnOnEvade();
-    void RespawnOnEvade();
+    void DespawnOnEvade(Seconds respawnDelay = 20s);
 
     [[nodiscard]] time_t const& GetRespawnTime() const { return m_respawnTime; }
     [[nodiscard]] time_t GetRespawnTimeEx() const;
@@ -403,9 +402,9 @@ public:
     bool LoadBotCreatureFromDB(uint32 guid, Map* map, bool addToMap = true);
     Player* GetBotOwner() const;
     Unit* GetBotsPet() const;
-    bool IsNPCBot() const;
-    bool IsNPCBotPet() const;
-    bool IsNPCBotOrPet() const;
+    bool IsNPCBot() const override;
+    bool IsNPCBotPet() const override;
+    bool IsNPCBotOrPet() const override;
     bool IsFreeBot() const;
     uint8 GetBotClass() const;
     uint32 GetBotRoles() const;
@@ -424,7 +423,7 @@ public:
     void ApplyCreatureSpellRangeMods(SpellInfo const* spellInfo, float& maxrange) const;
     void ApplyCreatureSpellMaxTargetsMods(SpellInfo const* spellInfo, uint32& targets) const;
     void ApplyCreatureSpellChanceOfSuccessMods(SpellInfo const* spellInfo, float& chance) const;
-    void ApplyCreatureEffectMods(WorldObject const* wtarget, SpellInfo const* spellInfo, uint8 effIndex, float& value) const;
+    void ApplyCreatureEffectMods(SpellInfo const* spellInfo, uint8 effIndex, float& value) const;
     void OnBotSummon(Creature* summon);
     void OnBotDespawn(Creature* summon);
     void BotStopMovement();
@@ -462,8 +461,6 @@ public:
     Item* GetBotEquips(uint8 slot) const;
     Item* GetBotEquipsByGuid(ObjectGuid itemGuid) const;
     float GetBotAverageItemLevel() const;
-
-    static bool IsBotCustomSpell(uint32 spellId);
     //End NPCBots
 
 protected:
