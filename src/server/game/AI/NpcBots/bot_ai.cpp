@@ -28,6 +28,7 @@
 #include "MotionMaster.h"
 #include "ObjectMgr.h"
 #include "ScriptedGossip.h"
+#include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "TemporarySummon.h"
 #include "Transport.h"
@@ -10256,6 +10257,7 @@ void bot_ai::_autoLootCreatureGold(Creature* creature) const
     Group const* gr = master->GetGroup();
     if (!gr)
     {
+        sScriptMgr->OnBeforeLootMoney(master, loot);
         master->ModifyMoney(loot->gold);
         master->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, loot->gold);
 
@@ -10273,6 +10275,8 @@ void bot_ai::_autoLootCreatureGold(Creature* creature) const
             if (p && p->IsAtGroupRewardDistance(creature))
                 players.push_back(p);
         }
+        
+        sScriptMgr->OnBeforeLootMoney(master, loot);
 
         uint32 goldPerPlayer = uint32(loot->gold / uint32(players.size()));
 
