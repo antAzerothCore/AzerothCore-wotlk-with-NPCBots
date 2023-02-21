@@ -681,7 +681,7 @@ struct boss_nefarian : public BossAI
                     {
                         for (auto& ref : me->GetThreatMgr().GetThreatList())
                         {
-                            if (ref->getTarget() && ref->getTarget()->GetTypeId() == TYPEID_PLAYER)
+                            if (ref->getTarget() && (ref->getTarget()->GetTypeId() == TYPEID_PLAYER || ref->getTarget()->IsNPCBotOrPet()))
                             {
                                 classesPresent.insert(ref->getTarget()->getClass());
                             }
