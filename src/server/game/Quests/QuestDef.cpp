@@ -227,7 +227,7 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     float diffFactor = 1.0f;
     uint8 GrayLevel = Acore::XP::GetGrayLevel(playerLevel);
     if (quest_level < GrayLevel)
-        diffFactor = (float)GrayLevel / quest_level * 0.9f;
+        diffFactor = (float)GrayLevel / quest_level;
         
     xp *= diffFactor;
     
