@@ -181,6 +181,12 @@ class go_suppression_device : public GameObjectScript
                     switch (eventId)
                     {
                         case EVENT_SUPPRESSION_CAST:
+                            if (_instance->GetBossState(DATA_BROODLORD_LASHLAYER) == DONE)
+                            {
+                                Deactivate();
+                                return;
+                            }
+
                             if (me->GetGoState() == GO_STATE_READY)
                             {
                                 me->CastSpell(nullptr, SPELL_SUPPRESSION_AURA);
