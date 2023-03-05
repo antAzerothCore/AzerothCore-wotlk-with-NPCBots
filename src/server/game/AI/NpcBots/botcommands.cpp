@@ -2444,7 +2444,7 @@ public:
         {
             Creature const* bot = handler->getSelectedCreature();
             if (bot && bot->IsNPCBot() && !mgr->GetBot(bot->GetGUID()) && bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_UNBIND) &&
-                BotDataMgr::SelectNpcBotData(bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+                BotDataMgr::SelectNpcBotData(owner->GetGUID(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
             {
                 if (mgr->RebindBot(const_cast<Creature*>(bot)) != BOT_ADD_SUCCESS)
                 {
@@ -2466,7 +2466,7 @@ public:
 
             Creature const* bot = BotDataMgr::FindBot(name, owner->GetSession()->GetSessionDbLocaleIndex());
             if (bot && bot->IsNPCBot() && !mgr->GetBot(bot->GetGUID()) && bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_UNBIND) &&
-                BotDataMgr::SelectNpcBotData(bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+                BotDataMgr::SelectNpcBotData(owner->GetGUID(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
             {
                 if (mgr->RebindBot(const_cast<Creature*>(bot)) != BOT_ADD_SUCCESS)
                 {
