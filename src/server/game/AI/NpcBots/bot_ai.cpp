@@ -51,7 +51,7 @@ static constexpr GossipOptionIcon BOT_ICON_ON = GOSSIP_ICON_BATTLE;
 static constexpr GossipOptionIcon BOT_ICON_OFF = GOSSIP_ICON_CHAT;
 
 static constexpr uint32 MAX_AMMO_LEVEL = 13;
-uint8 constexpr AmmoDPSForLevel[MAX_AMMO_LEVEL][2] =
+static constexpr uint8 AmmoDPSForLevel[MAX_AMMO_LEVEL][2] =
 {
     {  1,  1 },
     {  5,  2 },
@@ -69,7 +69,7 @@ uint8 constexpr AmmoDPSForLevel[MAX_AMMO_LEVEL][2] =
 };
 static constexpr uint32 MAX_POTION_SPELLS = 8;
 static constexpr uint32 MAX_FEAST_SPELLS = 11;
-uint32 constexpr ManaPotionSpells[MAX_POTION_SPELLS][2] =
+static constexpr uint32 ManaPotionSpells[MAX_POTION_SPELLS][2] =
 {
     {  5,   437 },
     { 14,   438 },
@@ -80,7 +80,7 @@ uint32 constexpr ManaPotionSpells[MAX_POTION_SPELLS][2] =
     { 55, 28499 },
     { 70, 43186 }
 };
-uint32 constexpr HealingPotionSpells[MAX_POTION_SPELLS][2] =
+static constexpr uint32 HealingPotionSpells[MAX_POTION_SPELLS][2] =
 {
     {  1,   439 },
     {  3,   440 },
@@ -91,7 +91,7 @@ uint32 constexpr HealingPotionSpells[MAX_POTION_SPELLS][2] =
     { 55, 28495 },
     { 70, 43185 }
 };
-uint32 constexpr DrinkSpells[MAX_FEAST_SPELLS][2] =
+static constexpr uint32 DrinkSpells[MAX_FEAST_SPELLS][2] =
 {
     {  1,   430 },
     {  5,   431 },
@@ -105,7 +105,7 @@ uint32 constexpr DrinkSpells[MAX_FEAST_SPELLS][2] =
     { 75, 43183 },
     { 80, 57073 }
 };
-uint32 constexpr EatSpells[MAX_FEAST_SPELLS][2] =
+static constexpr uint32 EatSpells[MAX_FEAST_SPELLS][2] =
 {
     {  1,   433 },
     {  5,   434 },
@@ -130,6 +130,13 @@ uint8 GroupIconsFlags[TARGETICONCOUNT] =
     /*CROSS       = */0x040,
     /*SKULL       = */0x080
 };
+
+struct TSpellSummary
+{
+    uint8 Targets; // set of enum SelectTarget
+    uint8 Effects; // set of enum SelectEffect
+};
+extern TSpellSummary* SpellSummary;
 
 void ApplyBotPercentModFloatVar(float &var, float val, bool apply)
 {
@@ -189,6 +196,8 @@ bot_ai::bot_ai(Creature* creature) : CreatureAI(creature)
     regenTimer = 0;
     m_botSpellInfo = nullptr;
     waitTimer = 0;
+    itemsAutouseTimer = 0;
+    _usableItemSlotsMask = 0;
     GC_Timer = 0;
     lastdiff = 0;
     _energyFraction = 0.f;
@@ -277,7 +286,7 @@ const std::string& bot_ai::LocalizedNpcText(Player const* forPlayer, uint32 text
     {
         std::wstring wnamepart;
         NpcTextLocale const* ntl = sObjectMgr->GetNpcTextLocale(textId);
-        if (loc != DEFAULT_LOCALE && ntl && !ntl->Text_0[0][loc].empty() && Utf8FitTo(ntl->Text_0[0][loc], wnamepart))
+        if (loc != DEFAULT_LOCALE && ntl && ntl->Text_0[0].size() > size_t(loc) && !ntl->Text_0[0][loc].empty() && Utf8FitTo(ntl->Text_0[0][loc], wnamepart))
             return ntl->Text_0[0][loc];
         else
             return nt->Options[0].Text_0;
@@ -4486,6 +4495,29 @@ void bot_ai::CalculateAoeSpots(Unit const* unit, AoeSpotsVec& spots)
             spots.push_back(AoeSpotsVec::value_type(*(*ci), radius));
         }
     }
+
+    //STUB
+    //if (!unit->IsPlayer() || !unit->ToPlayer()->HaveBot())
+    //    return;
+
+    //switch (unit->GetMapId())
+    //{
+    //    case 409: //Molten Core
+    //        break;
+    //    default:
+    //        return;
+    //}
+
+    //BotMap const* bmap = unit->ToPlayer()->GetBotMgr()->GetBotMap();
+    //for (BotMap::const_iterator itr = bmap->begin(); itr != bmap->end(); ++itr)
+    //{
+    //    if (itr->second && itr->second->IsInWorld() && itr->second->IsAlive())
+    //    {
+    //        // Living Bomb
+    //        if (unit->GetMapId() == 409 && !!itr->second->GetAuraEffect(SPELL_AURA_PERIODIC_TRIGGER_SPELL, SPELLFAMILY_GENERIC, 1646, 0))
+    //            spots.push_back(AoeSpotsVec::value_type(itr->second->GetPosition(), 18.0));
+    //    }
+    //}
 }
 
 void bot_ai::CalculateAoeSafeSpots(Unit* target, float maxdist, AoeSafeSpotsVec& safespots) const
@@ -4988,7 +5020,7 @@ void bot_ai::_updateMountedState()
 
     bool aura = me->HasAuraType(SPELL_AURA_MOUNTED);
     bool mounted = me->IsMounted() && (_botclass != BOT_CLASS_ARCHMAGE || aura);
-    bool template_fly = me->GetCreatureTemplate()->Movement.Flight == CreatureFlightMovementType::CanFly;
+    bool template_fly = me->GetCreatureTemplate()->Movement.Flight != CreatureFlightMovementType::None;
 
     //allow dismount
     if (!CanMount() && !aura && !mounted)
@@ -4998,11 +5030,10 @@ void bot_ai::_updateMountedState()
     {
         const_cast<CreatureTemplate*>(me->GetCreatureTemplate())->Movement.Flight = CreatureFlightMovementType::None;
         me->SetCanFly(false);
+        me->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_HOVER | MOVEMENTFLAG_CAN_FLY);
         me->SetDisableGravity(false);
-        me->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_FLYING);
         me->RemoveAurasByType(SPELL_AURA_MOUNTED);
         me->Dismount();
-        me->RemoveUnitMovementFlag(MOVEMENTFLAG_FALLING|MOVEMENTFLAG_FALLING_FAR|MOVEMENTFLAG_PITCH_UP|MOVEMENTFLAG_PITCH_DOWN|MOVEMENTFLAG_SPLINE_ELEVATION|MOVEMENTFLAG_FALLING_SLOW);
         me->BotStopMovement();
         return;
     }
@@ -5424,6 +5455,153 @@ uint32 bot_ai::GetPotion(bool mana) const
 bool bot_ai::IsPotionSpell(uint32 spellId) const
 {
     return spellId == GetPotion(true) || spellId == GetPotion(false);
+}
+
+/*static */BotItemUseSpellTargeting SelectTargeTypetForItemSpell(uint32 spellId, Unit const* caster)
+{
+    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+    if (!spellInfo || spellInfo->CalcCastTime() > 1500)
+        return BOT_ITEM_USE_SPELL_TARGET_NONE;
+
+    TSpellSummary const& sum = SpellSummary[spellId];
+    if (sum.Effects & (1u << (SELECT_EFFECT_DAMAGE-1)))
+    {
+        if (sum.Targets & ((1u << (SELECT_TARGET_SINGLE_ENEMY-1)) | (1u << (SELECT_TARGET_ANY_ENEMY-1))))
+            return BOT_ITEM_USE_SPELL_TARGET_ATTACKTARGET;
+        else if (sum.Targets & (1u << (SELECT_TARGET_AOE_ENEMY-1)))
+            return BOT_ITEM_USE_SPELL_TARGET_SELF;
+    }
+    else if (sum.Effects & (1u << (SELECT_EFFECT_HEALING-1)))
+    {
+        if (sum.Targets & ((1u << (SELECT_TARGET_SELF-1)) | (1u << (SELECT_TARGET_SINGLE_FRIEND-1)) | (1u << (SELECT_TARGET_AOE_FRIEND-1)) | (1u << (SELECT_TARGET_ANY_FRIEND-1))))
+            if (caster->GetHealthPct() < 75.f)
+                return BOT_ITEM_USE_SPELL_TARGET_SELF;
+    }
+    else if (sum.Effects & (1u << (SELECT_EFFECT_AURA-1)))
+    {
+        if (sum.Targets & ((1u << (SELECT_TARGET_SELF-1)) | (1u << (SELECT_TARGET_AOE_FRIEND-1)) | (1u << (SELECT_TARGET_AOE_ENEMY-1))))
+            return BOT_ITEM_USE_SPELL_TARGET_SELF;
+        else if (sum.Targets & ((1u << (SELECT_TARGET_SINGLE_FRIEND-1)) | (1u << (SELECT_TARGET_ANY_FRIEND-1))))
+            return BOT_ITEM_USE_SPELL_TARGET_ALLY;
+        else if (sum.Targets & ((1u << (SELECT_TARGET_SINGLE_ENEMY-1)) | (1u << (SELECT_TARGET_ANY_ENEMY-1))))
+            return BOT_ITEM_USE_SPELL_TARGET_ATTACKTARGET;
+    }
+    else // if (sum.Effects == 0)
+    {
+        if (sum.Targets & ((1u << (SELECT_TARGET_SINGLE_ENEMY-1)) | (1u << (SELECT_TARGET_ANY_ENEMY-1))))
+            return BOT_ITEM_USE_SPELL_TARGET_ATTACKTARGET;
+        else if (sum.Targets & ((1u << (SELECT_TARGET_AOE_ENEMY-1)) | (1u << (SELECT_TARGET_SELF-1)) | (1u << (SELECT_TARGET_SINGLE_FRIEND-1)) | (1u << (SELECT_TARGET_AOE_FRIEND-1)) | (1u << (SELECT_TARGET_ANY_FRIEND-1))))
+            return BOT_ITEM_USE_SPELL_TARGET_SELF;
+        else // if (sum.Targets == 0)
+            return BOT_ITEM_USE_SPELL_TARGET_SELF;
+    }
+
+    return BOT_ITEM_USE_SPELL_TARGET_NONE;
+}
+bool bot_ai::IsUsableItem(Item const* item)
+{
+    if (ItemTemplate const* proto = item->GetTemplate())
+    {
+        for (auto const& itemSpell : proto->Spells)
+        {
+            if (itemSpell.SpellId != 0 && itemSpell.SpellTrigger == ITEM_SPELLTRIGGER_ON_USE)
+                return true;
+        }
+    }
+
+    return false;
+}
+uint32 bot_ai::GetItemSpellCooldown(uint32 spellId) const
+{
+    for (Item const* item : _equips)
+    {
+        if (item && IsUsableItem(item))
+        {
+            ItemTemplate const* proto = item->GetTemplate();
+            for (auto const& itemSpell : proto->Spells)
+            {
+                if (itemSpell.SpellId == decltype(itemSpell.SpellId)(spellId))
+                    return itemSpell.SpellCooldown;
+            }
+        }
+    }
+
+    return 0;
+}
+void bot_ai::CheckUsableItems(uint32 diff)
+{
+    if (!_usableItemSlotsMask || itemsAutouseTimer > diff || !me->IsInCombat() || IsCasting() || (!me->GetVictim() && me->getAttackers().empty()))
+        return;
+
+    itemsAutouseTimer = urand(2500, 5500);
+
+    for (uint8 slot = BOT_SLOT_MAINHAND; slot < BOT_INVENTORY_SIZE; ++slot)
+    {
+        if (_usableItemSlotsMask & (1ul << slot))
+        {
+            if (Item const* item = _equips[slot])
+            {
+                bool is_spell_ready = false;
+                uint32 firstItemSpellId = 0;
+                for (auto const& itemSpell : item->GetTemplate()->Spells)
+                {
+                    if (itemSpell.SpellId > 0 && itemSpell.SpellTrigger == ITEM_SPELLTRIGGER_ON_USE)
+                    {
+                        if (firstItemSpellId == 0)
+                            firstItemSpellId = itemSpell.SpellId;
+
+                        if (IsSpellReady(itemSpell.SpellId, diff, false))
+                            is_spell_ready = true;
+                        else
+                        {
+                            is_spell_ready = false;
+                            break;
+                        }
+                    }
+                }
+                if (!is_spell_ready)
+                    continue;
+
+                uint32 targetType = SelectTargeTypetForItemSpell(firstItemSpellId, me);
+                Unit* castTarget = nullptr;
+                switch (targetType)
+                {
+                    case BOT_ITEM_USE_SPELL_TARGET_SELF:
+                        castTarget = me;
+                        break;
+                    case BOT_ITEM_USE_SPELL_TARGET_ATTACKTARGET:
+                        castTarget = me->GetVictim();
+                        break;
+                    case BOT_ITEM_USE_SPELL_TARGET_ALLY:
+                        castTarget = me->GetNextRandomRaidMemberOrPet(10.f);
+                        if (!castTarget)
+                            castTarget = me;
+                        break;
+                    case BOT_ITEM_USE_SPELL_TARGET_NONE:
+                    default:
+                        break;
+                }
+
+                //LOG_ERROR("scripts", "bot_ai::CheckUsableItems(): bot {}, slot {}, spell {}, target {}",
+                //    me->GetName().c_str(), uint32(slot), firstItemSpellId, targetType);
+
+                if (!castTarget)
+                    continue;
+
+                SpellCastTargets targets;
+                targets.SetUnitTarget(castTarget);
+                _castBotItemUseSpell(item, targets);
+
+                // do not delay next check unless all items were checked
+                if (slot < BOT_SLOT_TRINKET2)
+                    itemsAutouseTimer = 0;
+
+                break;
+            }
+            else
+                LOG_ERROR("scripts", "bot_ai::CheckUsableItems(): slot {} is in mask but no item exists in that slot!", uint32(slot));
+        }
+    }
 }
 //check if our party players are in duel. if so - ignore them, their opponents and any bots they have
 //Deprecated after 4c26c85
@@ -5847,6 +6025,7 @@ void bot_ai::InitSpellMap(uint32 basespell, bool forceadd, bool forwardRank)
         LOG_ERROR("entities.player", "bot_ai::InitSpellMap(): No SpellInfo found for base spell {}", basespell);
         return; //invalid spell id
     }
+    info = info->TryGetSpellInfoOverride(me);
 
     uint8 lvl = me->GetLevel();
     uint32 spellId = forceadd ? basespell : 0;
@@ -5948,8 +6127,8 @@ void bot_ai::SetSpellCooldown(uint32 basespell, uint32 msCooldown)
         itr->second->cooldown = msCooldown;
         return;
     }
-    else if (!msCooldown)
-        return;
+    //else if (!msCooldown)
+    //    return;
 
     InitSpellMap(basespell, true, false);
     SetSpellCooldown(basespell, msCooldown);
@@ -6458,7 +6637,7 @@ void bot_ai::OnSpellHit(Unit* caster, SpellInfo const* spell)
                 master->HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED))
             {
                 //TC_LOG_ERROR("entities.unit", "OnSpellHit: modding flight speed");
-                const_cast<CreatureTemplate*>(me->GetCreatureTemplate())->Movement.Flight = CreatureFlightMovementType::CanFly;
+                const_cast<CreatureTemplate*>(me->GetCreatureTemplate())->Movement.Flight = CreatureFlightMovementType::DisableGravity;
                 me->SetCanFly(true);
                 me->SetDisableGravity(true);
                 if (Aura* mount = me->GetAura(spell->Id))
@@ -6478,7 +6657,6 @@ void bot_ai::OnSpellHit(Unit* caster, SpellInfo const* spell)
                 }
                 me->SetSpeedRate(MOVE_FLIGHT, master->GetSpeedRate(MOVE_FLIGHT) * 1.17f);
                 me->SetSpeedRate(MOVE_RUN, master->GetSpeedRate(MOVE_FLIGHT) * 1.17f);
-                me->m_movementInfo.SetMovementFlags(MOVEMENTFLAG_FLYING);
             }
             else
                 me->SetSpeedRate(MOVE_RUN, master->GetSpeedRate(MOVE_RUN) * 1.1f);
@@ -6625,16 +6803,19 @@ bool bot_ai::Wait()
 void bot_ai::ApplyBotDamageMultiplierMelee(uint32& damage, CalcDamageInfo& damageinfo) const
 {
     //WHITE ATTACKS damage bonus
+    damage *= BotMgr::GetBotDamageModByClass(GetBotClass());
     ApplyClassDamageMultiplierMelee(damage, damageinfo);
 }
 void bot_ai::ApplyBotDamageMultiplierMelee(int32& damage, SpellNonMeleeDamage& damageinfo, SpellInfo const* spellInfo, WeaponAttackType attackType, bool iscrit) const
 {
     //MELEE ABILITIES damage bonus (DMG_CLASS != DMG_CLASS_MAGIC)
+    damage *= BotMgr::GetBotDamageModByClass(GetBotClass());
     ApplyClassDamageMultiplierMeleeSpell(damage, damageinfo, spellInfo, attackType, iscrit);
 }
 void bot_ai::ApplyBotDamageMultiplierSpell(int32& damage, SpellNonMeleeDamage& damageinfo, SpellInfo const* spellInfo, WeaponAttackType attackType, bool iscrit) const
 {
     //DAMAGE SPELLS damage bonus (DMG_CLASS_MAGIC)
+    damage *= BotMgr::GetBotDamageModByClass(GetBotClass());
     ApplyClassDamageMultiplierSpell(damage, damageinfo, spellInfo, attackType, iscrit);
 }
 void bot_ai::ApplyBotDamageMultiplierHeal(Unit const* victim, float& heal, SpellInfo const* spellInfo, DamageEffectType damagetype, uint32 stack) const
@@ -11148,6 +11329,8 @@ bool bot_ai::_unequip(uint8 slot, ObjectGuid receiver)
 
     uint32 itemId = item->GetEntry();
 
+    _usableItemSlotsMask &= ~(1ul << slot);
+
     RemoveItemBonuses(slot);
     ApplyItemSetBonuses(item, false);
 
@@ -11304,7 +11487,12 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
             me->SetAttackTime(WeaponAttackType(slot), delay); //set attack speed
     }
 
-    //if (master) LOG_ERROR("server.loading", "({}) Equip: {} {}", master->GetGUID().GetCounter(), slot, newItemId);
+    if (IsUsableItem(newItem))
+    {
+        uint32 slotMask = 1ul << slot;
+        ASSERT(!(_usableItemSlotsMask & slotMask));
+        _usableItemSlotsMask |= slotMask;
+    }
 
     _updateEquips(slot, newItem);
 
@@ -13537,6 +13725,16 @@ void bot_ai::InitEquips()
             }
         }
     }
+
+    for (uint8 slot = BOT_SLOT_MAINHAND; slot < BOT_INVENTORY_SIZE; ++slot)
+    {
+        if (_equips[slot] && IsUsableItem(_equips[slot]))
+        {
+            uint32 slotMask = 1ul << slot;
+            ASSERT(!(_usableItemSlotsMask & slotMask));
+            _usableItemSlotsMask |= slotMask;
+        }
+    }
 }
 
 void bot_ai::FindMaster()
@@ -13968,7 +14166,7 @@ bool bot_ai::StartAttack(Unit const* u, bool force)
     return true;
 }
 
-void bot_ai::EnterCombat(Unit* u)
+void bot_ai::JustEngagedWith(Unit* u)
 {
     _atHome = false;
 
@@ -14079,15 +14277,16 @@ void bot_ai::OnBotSpellGo(Spell const* spell, bool ok)
             //Set cooldown
             if (!curInfo->IsCooldownStartedOnEvent() && !curInfo->IsPassive())
             {
-                uint32 rec = curInfo->RecoveryTime;
+                uint32 rec = curInfo->RecoveryTime ? curInfo->RecoveryTime : GetItemSpellCooldown(curInfo->Id);
                 uint32 catrec = curInfo->CategoryRecoveryTime;
 
-                if (rec > 0 || (!spell->GetCastTime() && curInfo->CalcCastTime()))
+                if (rec || (!spell->GetCastTime() && curInfo->CalcCastTime()))
                     ApplyBotSpellCooldownMods(curInfo, rec);
-                if (catrec > 0 && !(curInfo->AttributesEx6 & SPELL_ATTR6_NO_CATEGORY_COOLDOWN_MODS))
+                if (catrec && !(curInfo->AttributesEx6 & SPELL_ATTR6_NO_CATEGORY_COOLDOWN_MODS))
                     ApplyBotSpellCategoryCooldownMods(curInfo, catrec);
 
-                SetSpellCooldown(curInfo->GetFirstRankSpell()->Id, rec);
+                if (rec || catrec)
+                    SetSpellCooldown(curInfo->GetFirstRankSpell()->Id, rec);
                 SetSpellCategoryCooldown(curInfo->GetFirstRankSpell(), catrec);
             }
 
@@ -16068,6 +16267,7 @@ void bot_ai::CommonTimers(uint32 diff)
     if (GC_Timer > diff)            GC_Timer -= diff;
     if (checkAurasTimer > diff)     checkAurasTimer -= diff;
     if (waitTimer > diff)           waitTimer -= diff;
+    if (itemsAutouseTimer > diff)   itemsAutouseTimer -= diff;
     if (roleTimer > diff)           roleTimer -= diff;
     if (ordersTimer > diff)         ordersTimer -= diff;
     if (checkMasterTimer > diff)    checkMasterTimer -= diff;
@@ -16219,7 +16419,7 @@ void bot_ai::TeleportHome()
     GetHomePosition(mapid, &pos);
 
     Map* map = sMapMgr->CreateBaseMap(mapid);
-    ASSERT(map && !map->Instanceable());
+    ASSERT(!map->Instanceable(), map->GetDebugInfo());
     BotMgr::TeleportBot(me, map, &pos);
 
     spawned = false;
@@ -16361,7 +16561,6 @@ void bot_ai::OnBotEnterVehicle(Vehicle const* vehicle)
                 case CREATURE_OCULUS_DRAKE_AMBER:
                     vehicle->GetBase()->SetCanFly(true);
                     vehicle->GetBase()->SetDisableGravity(true);
-                    vehicle->GetBase()->m_movementInfo.SetMovementFlags(MOVEMENTFLAG_FLYING);
                     break;
                 default:
                     break;
@@ -16482,7 +16681,8 @@ void bot_ai::AfterBotOwnerEnterVehicle()
             //    break;
             case CREATURE_TOC5_WARHORSE:
             case CREATURE_TOC5_BATTLEWORG:
-                me->CastSpell(veh, 67830); //Ride Vehicle
+                //me->CastSpell(veh, 67830); //Ride Vehicle
+                me->EnterVehicleUnattackable(veh);
                 break;
             default:
                 me->EnterVehicle(veh);
@@ -16528,6 +16728,7 @@ Unit* bot_ai::SpawnVehicle(uint32 creEntry, uint32 vehEntry)
         me->GetClosePoint(x, y, z, me->GetCombatReach());
         vc = new TempSummon(nullptr, me->GetGUID(), false);
         ASSERT(vc->Create(map->GenerateLowGuid<HighGuid::Unit>(), map, master->GetPhaseMask(), creEntry, vehEntry, x,y,z,o));
+        vc->ClearZoneScript();
         vc->SetTempSummonType(TEMPSUMMON_CORPSE_DESPAWN);
         vc->InitStats(0);
         ASSERT(map->AddToMap(vc->ToCreature()));
@@ -16546,6 +16747,7 @@ Unit* bot_ai::SpawnVehicle(uint32 creEntry, uint32 vehEntry)
         me->GetTransport()->CalculatePassengerPosition(x, y, z, &o);
         vc = new TempSummon(nullptr, me->GetGUID(), false);
         ASSERT(vc->Create(map->GenerateLowGuid<HighGuid::Unit>(), map, master->GetPhaseMask(), creEntry, vehEntry, x,y,z,o));
+        vc->ClearZoneScript();
 
         //vc->SetTransport(me->GetTransport());
         //vc->AddUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT);

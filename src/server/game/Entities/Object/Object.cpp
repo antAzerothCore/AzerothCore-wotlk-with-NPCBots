@@ -52,7 +52,7 @@
 #include "Tokenize.h"
 #include "StringConvert.h"
 
-// TODO: this import is not necessary for compilation and marked as unused by the IDE
+/// @todo: this import is not necessary for compilation and marked as unused by the IDE
 //  however, for some reasons removing it would cause a damn linking issue
 //  there is probably some underlying problem with imports which should properly addressed
 //  see: https://github.com/azerothcore/azerothcore-wotlk/issues/9766
@@ -2226,15 +2226,18 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
     //npcbot: totem emul step 2
     if (summoner && summoner->IsNPCBot())
     {
-        summon->SetFaction(summoner->ToCreature()->GetFaction());
-        summon->SetPvP(summoner->ToCreature()->IsPvP());
         summon->SetCreatorGUID(summoner->GetGUID()); // see TempSummon::InitStats()
-        //set key flags if needed
-        if (!summoner->ToCreature()->IsFreeBot())
+        if (mask == UNIT_MASK_TOTEM)
         {
-            summon->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
-            summon->SetOwnerGUID(summoner->ToCreature()->GetBotOwner()->GetGUID());
-            summon->SetControlledByPlayer(true);
+            summon->SetFaction(summoner->ToCreature()->GetFaction());
+            summon->SetPvP(summoner->ToCreature()->IsPvP());
+            //set key flags if needed
+            if (!summoner->ToCreature()->IsFreeBot())
+            {
+                summon->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+                summon->SetOwnerGUID(summoner->ToCreature()->GetBotOwner()->GetGUID());
+                summon->SetControlledByPlayer(true);
+            }
         }
     }
     //end npcbot
@@ -2923,7 +2926,7 @@ void WorldObject::DestroyForNearbyPlayers()
         if (!player->HaveAtClient(this))
             continue;
 
-        if (isType(TYPEMASK_UNIT) && ((Unit*)this)->GetCharmerGUID() == player->GetGUID()) // TODO: this is for puppet
+        if (isType(TYPEMASK_UNIT) && ((Unit*)this)->GetCharmerGUID() == player->GetGUID()) /// @todo: this is for puppet
             continue;
 
         DestroyForPlayer(player);

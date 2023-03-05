@@ -14,6 +14,8 @@ class DPSTracker;
 
 struct Position;
 
+enum CurrentSpellTypes;
+
 constexpr size_t TargetIconNamesCacheSize = 8u; // Group.h TARGETICONCOUNT
 
 enum BotAddResult
@@ -101,12 +103,14 @@ class AC_GAME_API BotMgr
         static float GetBotDamageModSpell();
         static float GetBotHealingMod();
         static float GetBotHPMod();
+        static float GetBotDamageModByClass(uint8 botclass);
 
         static void Initialize();
         static void ReloadConfig();
         static void LoadConfig(bool reload = false);
 
         //onEvent hooks
+        static void OnBotSpellInterrupt(Unit const* caster, CurrentSpellTypes spellType);
         static void OnBotSpellGo(Unit const* caster, Spell const* spell, bool ok = true);
         static void OnBotOwnerSpellGo(Unit const* caster, Spell const* spell, bool ok = true);
         static void OnVehicleSpellGo(Unit const* caster, Spell const* spell, bool ok = true);

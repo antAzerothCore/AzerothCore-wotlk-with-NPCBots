@@ -201,19 +201,19 @@ public:
         return new death_knight_botAI(creature);
     }
 
-    bool OnGossipHello(Player* player, Creature* creature)
+    bool OnGossipHello(Player* player, Creature* creature) override
     {
         return creature->GetBotAI()->OnGossipHello(player, 0);
     }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 sender, uint32 action)
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 sender, uint32 action) override
     {
         if (bot_ai* ai = creature->GetBotAI())
             return ai->OnGossipSelect(player, creature, sender, action);
         return true;
     }
 
-    bool OnGossipSelectCode(Player* player, Creature* creature, uint32 sender, uint32 action, char const* code)
+    bool OnGossipSelectCode(Player* player, Creature* creature, uint32 sender, uint32 action, char const* code) override
     {
         if (bot_ai* ai = creature->GetBotAI())
             return ai->OnGossipSelectCode(player, creature, sender, action, code);
@@ -328,7 +328,7 @@ public:
             GetInPosition(force, u);
         }
 
-        void EnterCombat(Unit* u) override { bot_ai::EnterCombat(u); }
+        void JustEngagedWith(Unit* u) override { bot_ai::JustEngagedWith(u); }
         void EnterEvadeMode(EvadeReason why = EVADE_REASON_OTHER) override { bot_ai::EnterEvadeMode(why); }
         void MoveInLineOfSight(Unit* u) override { bot_ai::MoveInLineOfSight(u); }
         void JustDied(Unit* u) override { UnsummonAll(); bot_ai::JustDied(u); }
@@ -610,6 +610,8 @@ public:
 
             if (!CheckAttackTarget())
                 return;
+
+            CheckUsableItems(diff);
 
             DoNormalAttack(diff);
         }
