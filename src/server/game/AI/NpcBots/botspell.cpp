@@ -42,6 +42,25 @@ void GenerateBotCustomSpells()
     uint32 spellId, triggerSpellId;
     SpellInfo* sinfo;
 
+    //COMMON
+    //1) SPELL_TELEPORT_LOCAL
+    spellId = SPELL_TELEPORT_LOCAL; //7794
+    botSpellInfoOverrides.insert({ spellId, *sSpellMgr->GetSpellInfo(spellId) });
+    sinfo = &botSpellInfoOverrides.at(spellId);
+
+    sinfo->InterruptFlags = SPELL_INTERRUPT_FLAG_ABORT_ON_DMG;
+    sinfo->CastTimeEntry = sSpellCastTimesStore.LookupEntry(6); //5000ms
+    //sinfo->CastTimeEntry = sSpellCastTimesStore.LookupEntry(4); //1000ms
+    sinfo->RangeEntry = sSpellRangeStore.LookupEntry(1); //self
+    sinfo->ExplicitTargetMask = TARGET_FLAG_DEST_LOCATION;
+    sinfo->Attributes |= SPELL_ATTR0_NO_IMMUNITIES | SPELL_ATTR0_ALLOW_WHILE_MOUNTED;
+    sinfo->AttributesEx2 |= SPELL_ATTR2_IGNORE_LINE_OF_SIGHT;
+
+    sinfo->Effects[0].Effect = SPELL_EFFECT_TELEPORT_UNITS;
+    sinfo->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+    sinfo->Effects[0].TargetB = SpellImplicitTargetInfo(TARGET_DEST_DEST);
+    sinfo->Effects[0].BasePoints = 1;
+
     //BLADEMASTER
     //2) SPELL_COMBAT_SPECIAL_2H_ATTACK
     spellId = SPELL_COMBAT_SPECIAL_2H_ATTACK; //44079
@@ -818,33 +837,34 @@ void GenerateBotCustomSpells()
     sinfo->ManaCost = 6 * 5 * 2; //need to increase cost since ability is not autocast, has cd and deals more damage
     sinfo->MaxAffectedTargets = 1;
     sinfo->AuraInterruptFlags = AURA_INTERRUPT_FLAG_CHANGE_MAP;
-    sinfo->ExplicitTargetMask = TARGET_FLAG_UNIT;
-    sinfo->Attributes |= SPELL_ATTR0_NO_ACTIVE_DEFENSE;
+    //sinfo->ExplicitTargetMask = TARGET_FLAG_UNIT;
+    sinfo->Attributes |= SPELL_ATTR0_NO_ACTIVE_DEFENSE | SPELL_ATTR0_AURA_IS_DEBUFF;
     sinfo->AttributesEx |= SPELL_ATTR1_NO_REDIRECTION | SPELL_ATTR1_NO_REFLECTION;
     sinfo->AttributesEx2 |= SPELL_ATTR2_DO_NOT_RESET_COMBAT_TIMERS/* | SPELL_ATTR2_CANT_CRIT*/;
     sinfo->AttributesEx4 |= SPELL_ATTR4_NO_CAST_LOG;
 
-    sinfo->Effects[0].Effect = SPELL_EFFECT_WEAPON_PERCENT_DAMAGE;
-    sinfo->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
-    sinfo->Effects[0].BasePoints = 150;
-    sinfo->Effects[0].DieSides = 0;
-    sinfo->Effects[0].BonusMultiplier = 1.f;
-    sinfo->Effects[0].DamageMultiplier = 1.f;
-    sinfo->Effects[0].RealPointsPerLevel = 0.f;
-    sinfo->Effects[0].ValueMultiplier = 1.f;
-    sinfo->Effects[0].RadiusEntry = nullptr;
-
-    sinfo->Effects[1].Effect = SPELL_EFFECT_APPLY_AURA;
+    sinfo->Effects[1].Effect = SPELL_EFFECT_WEAPON_PERCENT_DAMAGE;
     sinfo->Effects[1].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
-    sinfo->Effects[1].ApplyAuraName = SPELL_AURA_PERIODIC_DAMAGE;
-    sinfo->Effects[1].BasePoints = 100;
+    sinfo->Effects[1].ApplyAuraName = SPELL_AURA_NONE;
+    sinfo->Effects[1].BasePoints = 150;
     sinfo->Effects[1].DieSides = 0;
-    sinfo->Effects[1].BonusMultiplier = 2.f;
+    sinfo->Effects[1].BonusMultiplier = 1.f;
     sinfo->Effects[1].DamageMultiplier = 1.f;
-    sinfo->Effects[1].RealPointsPerLevel = 10.f;
+    sinfo->Effects[1].RealPointsPerLevel = 0.f;
     sinfo->Effects[1].ValueMultiplier = 1.f;
     sinfo->Effects[1].RadiusEntry = nullptr;
-    sinfo->Effects[1].Amplitude = 2000;
+
+    //sinfo->Effects[0].Effect = SPELL_EFFECT_APPLY_AURA;
+    //sinfo->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
+    //sinfo->Effects[0].ApplyAuraName = SPELL_AURA_PERIODIC_DAMAGE;
+    sinfo->Effects[0].BasePoints = 100;
+    //sinfo->Effects[0].DieSides = 0;
+    sinfo->Effects[0].BonusMultiplier = 2.f;
+    sinfo->Effects[0].DamageMultiplier = 1.f;
+    sinfo->Effects[0].RealPointsPerLevel = 10.f;
+    //sinfo->Effects[0].ValueMultiplier = 1.f;
+    //sinfo->Effects[0].RadiusEntry = nullptr;
+    sinfo->Effects[0].Amplitude = 2000;
     //26) END BLACK ARROW
 
     //27) DRAIN LIFE

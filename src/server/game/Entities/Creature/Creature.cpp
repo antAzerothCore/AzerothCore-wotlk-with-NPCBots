@@ -356,6 +356,11 @@ void Creature::SearchFormation()
 
 void Creature::RemoveCorpse(bool setSpawnTime, bool skipVisibility)
 {
+    //npcbot
+    if (IsNPCBotOrPet())
+        return;
+    //end npcbot
+
     if (getDeathState() != CORPSE)
         return;
 
@@ -469,17 +474,8 @@ bool Creature::InitEntry(uint32 Entry, const CreatureData* data)
 
     SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);
 
-    float runSpeed = cinfo->speed_run;
-    if (Pet* pet = ToPet())
-    {
-        if (pet->isControlled() && pet->GetOwnerGUID().IsPlayer())
-        {
-            runSpeed = 1.15f;
-        }
-    }
-
     SetSpeed(MOVE_WALK, cinfo->speed_walk);
-    SetSpeed(MOVE_RUN, runSpeed);
+    SetSpeed(MOVE_RUN, cinfo->speed_run);
     SetSpeed(MOVE_SWIM, cinfo->speed_swim);
     SetSpeed(MOVE_FLIGHT, cinfo->speed_flight);
 
@@ -713,16 +709,6 @@ void Creature::Update(uint32 diff)
             if (m_deathState != CORPSE)
                 break;
 
-            //npcbot: update dead bots
-            if (bot_AI)
-            {
-                bot_AI->UpdateDeadAI(diff);
-                break;
-            }
-            else if (bot_pet_AI)
-                break;
-            //end npcbot
-
             if (m_groupLootTimer && lootingGroupLowGUID)
             {
                 if (m_groupLootTimer <= diff)
@@ -738,6 +724,15 @@ void Creature::Update(uint32 diff)
                     m_groupLootTimer -= diff;
                 }
             }
+            //npcbot: update dead bots
+            else if (bot_AI)
+            {
+                bot_AI->UpdateDeadAI(diff);
+                break;
+            }
+            else if (bot_pet_AI)
+                break;
+            //end npcbot
             else if (m_corpseRemoveTime <= GameTime::GetGameTime().count())
             {
                 //npcbot: do not remove corpse
@@ -853,11 +848,6 @@ void Creature::Update(uint32 diff)
                 {
                     m_assistanceTimer -= diff;
                 }
-            }
-
-            if (bot_AI)
-            {
-                //TC_LOG_ERROR("entities.unit", "creature update for %u", m_spawnId);
             }
 
             if (!IsInEvadeMode() && IsAIEnabled)
@@ -1457,6 +1447,11 @@ bool Creature::isTappedBy(Player const* player) const
 
 void Creature::SaveToDB()
 {
+    //npcbot: disallow saving generated bots
+    if (IsNPCBot() && GetBotAI() && GetBotAI()->IsWanderer())
+        return;
+    //end npcbot
+
     // this should only be used when the creature has already been loaded
     // preferably after adding to map, because mapid may not be valid otherwise
     CreatureData const* data = sObjectMgr->GetCreatureData(m_spawnId);
@@ -1472,6 +1467,11 @@ void Creature::SaveToDB()
 
 void Creature::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
 {
+    //npcbot: disallow saving generated bots
+    if (IsNPCBot() && GetBotAI() && GetBotAI()->IsWanderer())
+        return;
+    //end npcbot
+
     // update in loaded data
     if (!m_spawnId)
         m_spawnId = sObjectMgr->GenerateCreatureSpawnId();
@@ -2136,6 +2136,11 @@ void Creature::Respawn(bool force)
 {
     //DestroyForNearbyPlayers(); // pussywizard: not needed
 
+    //npcbot
+    if (IsNPCBotOrPet())
+        return;
+    //end npcbot
+
     if (force)
     {
         if (IsAlive())
@@ -2215,6 +2220,11 @@ void Creature::Respawn(bool force)
 
 void Creature::ForcedDespawn(uint32 timeMSToDespawn, Seconds forceRespawnTimer)
 {
+    //npcbot
+    if (IsNPCBotOrPet())
+        return;
+    //end npcbot
+
     if (timeMSToDespawn)
     {
         ForcedDespawnDelayEvent* pEvent = new ForcedDespawnDelayEvent(*this, forceRespawnTimer);
@@ -3051,6 +3061,11 @@ CreatureMovementData const& Creature::GetMovementTemplate() const
 
 void Creature::AllLootRemovedFromCorpse()
 {
+    //npcbot
+    if (IsNPCBotOrPet())
+        return;
+    //end npcbot
+
     if (loot.loot_type != LOOT_SKINNING && !IsPet() && GetCreatureTemplate()->SkinLootId && hasLootRecipient())
     {
         if (LootTemplates_Skinning.HaveLootFor(GetCreatureTemplate()->SkinLootId))
@@ -3883,22 +3898,35 @@ std::string Creature::GetDebugInfo() const
 }
 
 //NPCBOT
-bool Creature::LoadBotCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap)
+bool Creature::LoadBotCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool generated, uint32 entry, Position const* pos)
 {
     CreatureData const* data = sObjectMgr->GetCreatureData(spawnId);
     if (!data)
     {
-        LOG_ERROR("sql.sql", "Bot creature (GUID: {}) not found in table `creature`, can't load. ", spawnId);
-        return false;
+        if (!generated)
+        {
+            LOG_ERROR("sql.sql", "Bot creature (GUID: {}) not found in table `creature`, can't load.", spawnId);
+            return false;
+        }
+        else
+        {
+            ASSERT(entry != 0);
+            ASSERT_NOTNULL(pos);
+        }
     }
 
     m_spawnId = spawnId;
     ASSERT(map->GetInstanceId() == 0);
 
     m_creatureData = data;
-    m_wanderDistance = data->wander_distance;
+    m_wanderDistance = data ? data->wander_distance : 0.f;
 
-    if (!Create(map->GenerateLowGuid<HighGuid::Unit>(), map, data->phaseMask, data->id1, 0,data->posX, data->posY, data->posZ, data->orientation, data))
+    if (!Create(map->GenerateLowGuid<HighGuid::Unit>(), map,
+        data ? data->phaseMask : PHASEMASK_NORMAL,
+        data ? data->id1 : entry, 0,
+        data ? data->posX : pos->m_positionX, data ? data->posY : pos->m_positionY,
+        data ? data->posZ : pos->m_positionZ, data ? data->orientation : pos->GetOrientation(),
+        data))
         return false;
 
     //We should set first home position, because then AI calls home movement
@@ -3909,7 +3937,7 @@ bool Creature::LoadBotCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool
 
     uint32 curhealth;
 
-    if (!m_regenHealth)
+    if (data && !m_regenHealth)
     {
         curhealth = data->curhealth;
         if (curhealth)
@@ -3929,9 +3957,9 @@ bool Creature::LoadBotCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool
     SetHealth(m_deathState == ALIVE ? curhealth : 0);
 
     // checked at creature_template loading
-    m_defaultMovementType = MovementGeneratorType(data->movementType);
+    m_defaultMovementType = data ? MovementGeneratorType(data->movementType) : IDLE_MOTION_TYPE;
 
-    LOG_INFO("entities.unit", "Creature: loading npcbot {} (id: {})", GetName(), GetEntry());
+    LOG_INFO("entities.unit", "Creature: loading npcbot {} (id: {}, gen: {})", GetName().c_str(), GetEntry(), uint32(generated));
     ASSERT(!IsInWorld());
 
     m_corpseDelay = 0;
@@ -3976,6 +4004,16 @@ bool Creature::IsNPCBotOrPet() const
 bool Creature::IsFreeBot() const
 {
     return bot_AI ? bot_AI->IAmFree() : bot_pet_AI ? bot_pet_AI->IAmFree() : false;
+}
+
+bool Creature::IsWandererBot() const
+{
+    return bot_AI ? bot_AI->IsWanderer() : bot_pet_AI ? bot_pet_AI->IsWanderer() : false;
+}
+
+Battleground* Creature::GetBotBG() const
+{
+    return bot_AI ? bot_AI->GetBG() : nullptr;
 }
 
 uint32 Creature::GetBotRoles() const

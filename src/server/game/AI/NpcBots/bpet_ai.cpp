@@ -78,6 +78,8 @@ bot_pet_ai::bot_pet_ai(Creature* creature) : CreatureAI(creature)
     _updateTimerEx1 = urand(12000, 15000);
     checkAurasTimer = 0;
 
+    _wanderer = false;
+
     myType = 0;
     petOwner = nullptr;
     canUpdate = true;
@@ -1217,10 +1219,7 @@ void bot_pet_ai::OnOwnerDamagedBy(Unit* attacker)
 {
     if (petOwner->GetBotAI()->HasBotCommandState(BOT_COMMAND_MASK_UNMOVING))
         return;
-    if (me->GetVictim() && (!IAmFree() || me->GetDistance(me->GetVictim()) < me->GetDistance(attacker)))
-        return;
-
-    if (!me->IsValidAttackTarget(attacker) || !attacker->isTargetableForAttack() || IsInBotParty(attacker))
+    if (!petOwner->GetBotAI()->CanBotAttack(attacker))
         return;
 
     SetBotCommandState(BOT_COMMAND_COMBATRESET);
@@ -1319,7 +1318,7 @@ void bot_pet_ai::RefreshAura(uint32 spellId, int8 count, Unit* target) const
     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
     if (!spellInfo)
     {
-        LOG_ERROR("entities.player", "bot_pet_ai::RefreshAura(): Invalid spellInfo for spell %u! Bot - {} (botclass: {}, entry: {})",
+        LOG_ERROR("entities.player", "bot_pet_ai::RefreshAura(): Invalid spellInfo for spell {}! Bot - {} (botclass: {}, entry: {})",
             spellId, me->GetName().c_str(), uint32(petOwner->GetBotClass()), me->GetEntry());
         return;
     }
@@ -1376,7 +1375,7 @@ Unit* bot_pet_ai::_getTarget(bool &reset) const
     {
         dropTarget = IAmFree() ?
             petOwner->GetDistance(mytar) > foldist :
-            (petOwner->GetBotOwner()->GetDistance(mytar) > foldist || (petOwner->GetBotOwner()->GetDistance(mytar) > foldist * 0.75f && !mytar->IsWithinLOSInMap(petOwner)));
+            (petOwner->GetBotOwner()->GetDistance(mytar) > foldist || (petOwner->GetBotOwner()->GetDistance(mytar) > foldist * 0.75f && !mytar->IsWithinLOSInMap(petOwner, VMAP::ModelIgnoreFlags::M2, LINEOFSIGHT_ALL_CHECKS)));
     }
     if (dropTarget)
         return nullptr;
@@ -1497,7 +1496,7 @@ void bot_pet_ai::GetInPosition(bool force, Unit* newtarget, Position* mypos)
             attackpos.m_positionY = mypos->m_positionY;
             attackpos.m_positionZ = mypos->m_positionZ;
         }
-        if (me->GetExactDist2d(&attackpos) > 4.f || !me->IsWithinLOSInMap(newtarget))
+        if (me->GetExactDist2d(&attackpos) > 4.f || !me->IsWithinLOSInMap(newtarget, VMAP::ModelIgnoreFlags::M2, LINEOFSIGHT_ALL_CHECKS))
         {
             me->GetMotionMaster()->MovePoint(newtarget->GetMapId(), attackpos);
             if (!me->HasUnitState(UNIT_STATE_MELEE_ATTACKING))
@@ -1977,7 +1976,7 @@ bool bot_pet_ai::Wait()
         return true;
 
     if (IAmFree())
-        waitTimer = me->IsInCombat() ? 500 : ((__rand + 100) * 50);
+        waitTimer = me->IsInCombat() ? 250 : ((__rand + 100) * 20);
     else if (!me->GetMap()->IsRaid())
         waitTimer = std::min<uint32>(uint32(50 * (petOwner->GetBotOwner()->GetNpcBotsCount() - 1) + __rand + __rand), 500);
     else
@@ -2071,6 +2070,11 @@ void bot_pet_ai::JustDied(Unit*)
     KillEvents(false);
 }
 
+void bot_pet_ai::KilledUnit(Unit* u)
+{
+    GetPetsOwner()->GetBotAI()->KilledUnit(u);
+}
+
 void bot_pet_ai::AttackStart(Unit* /*u*/)
 {
 }
@@ -2104,6 +2108,7 @@ void bot_pet_ai::IsSummonedBy(WorldObject* summoner)
     myType = me->GetEntry();
     //myType = petOwner->GetBotAI()->GetAIMiscValue(BOTAI_MISC_PET_TYPE);
     //ASSERT(myType);
+    me->setActive(true);
     ASSERT(!me->GetBotAI());
     ASSERT(!me->GetBotPetAI());
     me->SetBotPetAI(this);
@@ -2371,7 +2376,7 @@ bool bot_pet_ai::GlobalUpdate(uint32 diff)
             else
             {
                 CalculateAttackPos(victim, attackpos);
-                if (me->GetExactDist2d(&attackpos) > 4.f || !me->IsWithinLOSInMap(victim))
+                if (me->GetExactDist2d(&attackpos) > 4.f || !me->IsWithinLOSInMap(victim, VMAP::ModelIgnoreFlags::M2, LINEOFSIGHT_ALL_CHECKS))
                     GetInPosition(true, victim, &attackpos);
             }
         }

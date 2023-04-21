@@ -1,6 +1,7 @@
 #ifndef _BOTCOMMON_H
 #define _BOTCOMMON_H
 
+#include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"
 
@@ -35,11 +36,15 @@ enum BotCommonValues
     GO_REFRESHMENT_TABLE_2              = 193061,//lvl 80 req80
     GO_SOULWELL_1                       = 181621,//lvl 60 req68
     GO_SOULWELL_2                       = 193169,//lvl 69 req80
+    GO_BOT_MONEY_BAG                    = 186736,
 //COMMON CDs
     POTION_CD                           = 60000,//default 60sec potion cd
     REGEN_CD                            = 1000, //update hp/mana every X milliseconds
 //COMMON TIMERS
     ITEM_ENCHANTMENT_EXPIRE_TIMER       = 3600000, //1 Hour
+    REVIVE_TIMER_DEFAULT                = 180000, //3 Minutes
+    REVIVE_TIMER_MEDIUM                 = 90000, //1.5 Minutes
+    REVIVE_TIMER_SHORT                  = 60000, //1 Minute
 //VEHICLE CREATURES
     CREATURE_NEXUS_SKYTALON_1           = 32535, // [Q] Aces High
     CREATURE_EOE_SKYTALON_N             = 30161, // Eye of Eternity
@@ -181,6 +186,12 @@ enum BotClasses : uint8
 
     BOT_CLASS_EX_START                  = BOT_CLASS_BM
 };
+
+constexpr uint32 ALL_BOT_CLASSES_MASK =
+    ((1 << BOT_CLASS_WARRIOR)|(1 << BOT_CLASS_PALADIN)|(1 << BOT_CLASS_HUNTER)|(1 << BOT_CLASS_ROGUE)|(1 << BOT_CLASS_PRIEST)|
+    (1 << BOT_CLASS_DEATH_KNIGHT)|(1 << BOT_CLASS_SHAMAN)|(1 << BOT_CLASS_MAGE)|(1 << BOT_CLASS_WARLOCK)|(1 << BOT_CLASS_DRUID)|
+    (1 << BOT_CLASS_BM)|(1 << BOT_CLASS_SPHYNX)|(1 << BOT_CLASS_ARCHMAGE)|(1 << BOT_CLASS_DREADLORD)|(1 << BOT_CLASS_SPELLBREAKER)|
+    (1 << BOT_CLASS_DARK_RANGER)|(1 << BOT_CLASS_NECROMANCER)|(1 << BOT_CLASS_SEA_WITCH));
 
 enum BotStances
 {
@@ -485,8 +496,9 @@ enum BotAIResetType
 {
     BOTAI_RESET_INIT                    = 0x01,
     BOTAI_RESET_DISMISS                 = 0x02,
-    BOTAI_RESET_LOST                    = 0x04,
+    BOTAI_RESET_UNBIND                  = 0x04,
     BOTAI_RESET_LOGOUT                  = 0x08,
+    BOTAI_RESET_FORCERECALL             = 0x10,
 
     BOTAI_RESET_MASK_ABANDON_MASTER     = (BOTAI_RESET_INIT | BOTAI_RESET_DISMISS)
 };

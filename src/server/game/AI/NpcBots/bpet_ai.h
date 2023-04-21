@@ -25,13 +25,14 @@ class bot_pet_ai : public CreatureAI
         void Reset() override {}
 
         void JustDied(Unit*) override;
-        //virtual void KilledUnit(Unit* u);
+        void KilledUnit(Unit* u) override;
         void AttackStart(Unit* u) override;
         //virtual void JustEngagedWith(Unit* u) override;
         void MoveInLineOfSight(Unit* /*u*/) override {}
         void DamageDealt(Unit* victim, uint32& damage, DamageEffectType damageType) override;
         void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/, DamageEffectType /*damageType*/, SpellSchoolMask /*schoolMask*/) override { }
         //void ReceiveEmote(Player* player, uint32 emote);
+        void EnterEvadeMode(EvadeReason/* why*/ = EVADE_REASON_OTHER) override { }
         uint32 GetData(uint32 data) const override;
         void IsSummonedBy(WorldObject* summoner) override;
 
@@ -49,7 +50,12 @@ class bot_pet_ai : public CreatureAI
         virtual void ApplyBotPetSpellRadiusMods(SpellInfo const* /*spellInfo*/, float& /*radius*/) const {}
         bool IsTank(Unit const* unit) const;
         bool IsOffTank(Unit const* unit) const;
+
         bool IAmFree() const;
+
+        //wandering bots
+        bool IsWanderer() const { return _wanderer; }
+        void SetWanderer() { if (IAmFree()) _wanderer = true; }
 
         static bool CCed(Unit const* target, bool root = false);
 
@@ -114,7 +120,6 @@ class bot_pet_ai : public CreatureAI
         virtual void CheckAttackState();
         void OnSpellHit(Unit* caster, SpellInfo const* spell);
 
-        void CheckAuras(bool force = false);
         virtual void InitPetSpells() {}
         virtual void ApplyPetPassives() const {}
 
@@ -153,6 +158,9 @@ class bot_pet_ai : public CreatureAI
         //timers
         uint32 lastdiff, checkAurasTimer, regenTimer, _updateTimerMedium, _updateTimerEx1;
         mutable uint32 waitTimer;
+
+        //wandering bots
+        bool _wanderer;
 
         float _energyFraction;
 
