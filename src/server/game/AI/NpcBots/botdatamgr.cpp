@@ -92,8 +92,7 @@ public:
             Player const* bgPlayer = ObjectAccessor::FindConnectedPlayer(_playerGUID);
             if (bgPlayer && bgPlayer->IsInWorld() && bgPlayer->InBattleground())
             {
-                Battleground* bg = bgPlayer->GetBattleground();
-                ASSERT_NOTNULL(bg);
+                Battleground* bg = ASSERT_NOTNULL(bgPlayer->GetBattleground());
                 ASSERT(bgPlayer->GetMap()->IsBattlegroundOrArena());
 
                 //full, some players connected
@@ -130,7 +129,7 @@ public:
     void Abort(uint64 /*e_time*/) override { AbortMe(); }
 };
 
-void SpawnWanderergBot(uint32 bot_id, WanderNode const* spawnLoc, NpcBotRegistry* registry)
+void SpawnWandererBot(uint32 bot_id, WanderNode const* spawnLoc, NpcBotRegistry* registry)
 {
     CreatureTemplate const& bot_template = _botsWanderCreatureTemplates.at(bot_id);
     NpcBotData const* bot_data = BotDataMgr::SelectNpcBotData(0, bot_id);
@@ -148,13 +147,6 @@ void SpawnWanderergBot(uint32 bot_id, WanderNode const* spawnLoc, NpcBotRegistry
         spawnLoc->GetMapId(), spawnLoc->ToString().c_str(), spawnLoc->GetName().c_str());
 
     Creature* bot = new Creature();
-    if (!bot->Create(map->GenerateLowGuid<HighGuid::Unit>(), map, PHASEMASK_NORMAL, bot_id, 0,
-        spawnLoc->m_positionX, spawnLoc->m_positionY, spawnLoc->m_positionZ, spawnLoc->GetOrientation()))
-    {
-        delete bot;
-        LOG_FATAL("server.loading", "Creature is not created!");
-        ASSERT(false);
-    }
     if (!bot->LoadBotCreatureFromDB(0, map, true, true, bot_id, &spawnPos))
     {
         delete bot;
@@ -260,10 +252,8 @@ private:
         auto const& cSet = spareBotPair.second;
         ASSERT(!cSet.empty());
         uint32 orig_entry = cSet.size() == 1 ? *cSet.cbegin() : Acore::Containers::SelectRandomContainerElement(cSet);
-        CreatureTemplate const* orig_template = sObjectMgr->GetCreatureTemplate(orig_entry);
-        ASSERT(orig_template);
-        NpcBotExtras const* orig_extras = BotDataMgr::SelectNpcBotExtras(orig_entry);
-        ASSERT_NOTNULL(orig_extras);
+        CreatureTemplate const* orig_template = ASSERT_NOTNULL(sObjectMgr->GetCreatureTemplate(orig_entry));
+        NpcBotExtras const* orig_extras = ASSERT_NOTNULL(BotDataMgr::SelectNpcBotExtras(orig_entry));
         uint32 bot_faction = GetDefaultFactionForRaceClass(bot_class, orig_extras->race);
 
         NodeVec const* bot_spawn_nodes;
@@ -310,7 +300,8 @@ private:
 
         bot_template.InitializeQueryData();
 
-        NpcBotData* bot_data = new NpcBotData(bot_ai::DefaultRolesForClass(bot_class), bot_faction, bot_ai::DefaultSpecForClass(bot_class));
+        uint8 bot_spec = bot_ai::SelectSpecForClass(bot_class);
+        NpcBotData* bot_data = new NpcBotData(bot_ai::DefaultRolesForClass(bot_class, bot_spec), bot_faction, bot_spec);
         _botsDataByGUID[0][next_bot_id] = bot_data;
         NpcBotExtras* bot_extras = new NpcBotExtras();
         bot_extras->bclass = bot_class;
@@ -340,7 +331,7 @@ private:
         ASSERT(map->GetEntry()->IsContinent() || map->GetEntry()->IsBattlegroundOrArena(), map->GetDebugInfo().c_str());
 
         if (immediate)
-            SpawnWanderergBot(next_bot_id, spawnLoc, registry);
+            SpawnWandererBot(next_bot_id, spawnLoc, registry);
         else
             _botsWanderCreaturesToSpawn.push_back({ next_bot_id, spawnLoc });
 
@@ -460,11 +451,8 @@ public:
             {
                 for (uint32 spareBotId : kv.second)
                 {
-                    NpcBotExtras const* orig_extras = BotDataMgr::SelectNpcBotExtras(spareBotId);
-                    ASSERT_NOTNULL(orig_extras);
-
+                    NpcBotExtras const* orig_extras = ASSERT_NOTNULL(BotDataMgr::SelectNpcBotExtras(spareBotId));
                     uint32 bot_faction = GetDefaultFactionForRaceClass(kv.first, orig_extras->race);
-
                     uint32 botTeam = BotDataMgr::GetTeamForFaction(bot_faction);
 
                     if (int32(botTeam) != team)
@@ -593,7 +581,7 @@ void BotDataMgr::Update(uint32 diff)
 
             _botsWanderCreaturesToSpawn.pop_front();
 
-            SpawnWanderergBot(bot_id, spawnLoc, nullptr);
+            SpawnWandererBot(bot_id, spawnLoc, nullptr);
         }
 
         return;
@@ -2424,13 +2412,16 @@ WanderNode const* BotDataMgr::GetNextWanderNode(WanderNode const* curNode, Wande
     NodeList links;
     if (curNode->GetLinks().empty() || random)
     {
-        WanderNode::DoForAllMapWPs(curNode->GetMapId(), [&links, lvl = lvl, fac = faction, pos = fromPos](WanderNode const* wp) {
-            if (pos->GetExactDist2d(wp) < MAX_WANDER_NODE_DISTANCE &&
-                IsWanderNodeAvailableForBotFaction(wp, fac, true) && node_viable(wp, lvl))
-                links.push_back(wp);
-        });
-        if (!links.empty())
-            return links.size() == 1u ? links.front() : Acore::Containers::SelectRandomContainerElement(links);
+        if (bot->IsInWorld() && !bot->GetMap()->IsBattlegroundOrArena())
+        {
+            WanderNode::DoForAllMapWPs(curNode->GetMapId(), [&links, lvl = lvl, fac = faction, pos = fromPos](WanderNode const* wp) {
+                if (pos->GetExactDist2d(wp) < MAX_WANDER_NODE_DISTANCE &&
+                    IsWanderNodeAvailableForBotFaction(wp, fac, true) && node_viable(wp, lvl))
+                    links.push_back(wp);
+            });
+            if (!links.empty())
+                return links.size() == 1u ? links.front() : Acore::Containers::SelectRandomContainerElement(links);
+        }
 
         //Select closest
         WanderNode const* node_new = nullptr;
@@ -2438,7 +2429,7 @@ WanderNode const* BotDataMgr::GetNextWanderNode(WanderNode const* curNode, Wande
         WanderNode::DoForAllMapWPs(curNode->GetMapId(), [&node_new, &mindist, lvl = lvl, fac = faction, pos = fromPos](WanderNode const* wp) {
             float dist = pos->GetExactDist2d(wp);
             if (dist < mindist &&
-                IsWanderNodeAvailableForBotFaction(wp, fac, true) && node_viable(wp, lvl))
+                IsWanderNodeAvailableForBotFaction(wp, fac, false) && node_viable(wp, lvl))
             {
                 mindist = dist;
                 node_new = wp;
