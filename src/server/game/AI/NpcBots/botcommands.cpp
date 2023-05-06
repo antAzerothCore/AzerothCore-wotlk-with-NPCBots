@@ -2391,7 +2391,7 @@ public:
             return false;
         }
 
-        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_FACTION, &factionId);
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_FACTION, &factionId);
         bot->GetBotAI()->ReInitFaction();
 
         handler->PSendSysMessage("%s's faction set to %u", bot->GetName().c_str(), factionId);
@@ -2445,7 +2445,7 @@ public:
             return false;
         }
 
-        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
         bot->GetBotAI()->ReinitOwner();
         //bot->GetBotAI()->Reset();
 
@@ -2553,7 +2553,7 @@ public:
                 continue;
 
             Player* chr = handler->GetSession()->GetPlayer();
-            if (unspawned && *unspawned && BotDataMgr::SelectNpcBotData(chr->GetGUID(), id))
+            if (unspawned && *unspawned && BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), id))
                 continue;
 
             uint8 race = _botExtras->race;
@@ -2663,7 +2663,7 @@ public:
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
-        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
 
         handler->SendSysMessage("Npcbot successfully deleted");
         return true;
@@ -2709,7 +2709,7 @@ public:
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
-        BotDataMgr::UpdateNpcBotData(chr->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
 
         handler->PSendSysMessage("Npcbot %s successfully deleted", bot->GetName().c_str());
         return true;
@@ -2721,7 +2721,7 @@ public:
 
         uint32 count = 0;
         for (uint32 creature_id : BotDataMgr::GetExistingNPCBotIds())
-            if (NpcBotData const* botData = BotDataMgr::SelectNpcBotData(chr->GetGUID(), creature_id))
+            if (NpcBotData const* botData = BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), creature_id))
                 if (botData->owner == 0)
                     if (HandleNpcBotDeleteByIdCommand(handler, creature_id))
                         ++count;
@@ -2765,7 +2765,7 @@ public:
             return false;
         }
 
-        if (!BotDataMgr::SelectNpcBotData(player->GetGUID(), id))
+        if (!BotDataMgr::SelectNpcBotData(player->GetGUID().GetCounter(), id))
         {
             handler->PSendSysMessage("NpcBot %u is not spawned!", id);
             handler->SetSentErrorMessage(true);
@@ -2967,7 +2967,7 @@ public:
         
         //LOG_ERROR("server.loading", "NpcBotSpawn: {} {}", id, chr->GetGUID().GetCounter());
 
-        if (BotDataMgr::SelectNpcBotData(chr->GetGUID(), id))
+        if (BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), id))
         {
             handler->PSendSysMessage("Npcbot %u already exists in `characters_npcbot` table!", id);
             handler->SendSysMessage("If you want to move this bot to a new location use '.npcbot move' command");
@@ -3013,7 +3013,7 @@ public:
             return false;
         }
 
-        BotDataMgr::AddNpcBotData(chr->GetGUID(), id, bot_ai::DefaultRolesForClass(_botExtras->bclass), bot_ai::DefaultSpecForClass(_botExtras->bclass), creature->GetCreatureTemplate()->faction);
+        BotDataMgr::AddNpcBotData(chr->GetGUID().GetCounter(), id, bot_ai::DefaultRolesForClass(_botExtras->bclass), bot_ai::DefaultSpecForClass(_botExtras->bclass), creature->GetCreatureTemplate()->faction);
 
         creature->SaveToDB(map->GetId(), (1 << map->GetSpawnMode()), chr->GetPhaseMaskForSpawn());
 
@@ -3371,7 +3371,7 @@ public:
         {
             Creature const* bot = handler->getSelectedCreature();
             if (bot && bot->IsNPCBot() && !bot->IsTempBot() && !mgr->GetBot(bot->GetGUID()) && bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_UNBIND) &&
-                BotDataMgr::SelectNpcBotData(owner->GetGUID(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+                BotDataMgr::SelectNpcBotData(owner->GetGUID().GetCounter(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
             {
                 if (mgr->RebindBot(const_cast<Creature*>(bot)) != BOT_ADD_SUCCESS)
                 {
@@ -3398,7 +3398,7 @@ public:
 
             Creature const* bot = BotDataMgr::FindBot(name, owner->GetSession()->GetSessionDbLocaleIndex(), &bot_ids);
             if (bot && bot->IsNPCBot() && !bot->IsTempBot() && !mgr->GetBot(bot->GetGUID()) && bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_UNBIND) &&
-                BotDataMgr::SelectNpcBotData(owner->GetGUID(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+                BotDataMgr::SelectNpcBotData(owner->GetGUID().GetCounter(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
             {
                 if (mgr->RebindBot(const_cast<Creature*>(bot)) != BOT_ADD_SUCCESS)
                 {
@@ -3632,7 +3632,7 @@ public:
         }
 
         ObjectGuid::LowType guidlow = owner->GetGUID().GetCounter();
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
+        BotDataMgr::UpdateNpcBotData(guidlow, bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
         bot->GetBotAI()->ReinitOwner();
 
         if (owner->GetBotMgr()->AddBot(bot) == BOT_ADD_SUCCESS)

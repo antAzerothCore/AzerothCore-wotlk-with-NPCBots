@@ -1216,7 +1216,7 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
         //LOG_ERROR("server.loading", "Logout/Dismiss: {} {}", bot->GetEntry(), OwnerGuid.GetCounter());
-        BotDataMgr::UpdateNpcBotData(OwnerGuid, bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UpdateNpcBotData(OwnerGuid.GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
     }
 }
 
@@ -1337,7 +1337,7 @@ BotAddResult BotMgr::AddBot(Creature* bot)
 
         uint32 newOwner = _owner->GetGUID().GetCounter();
         //LOG_ERROR("server.loading", "AddBot: {} {}", bot->GetGUID().GetCounter(), newOwner);
-        BotDataMgr::UpdateNpcBotData(_owner->GetGUID(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
+        BotDataMgr::UpdateNpcBotData(_owner->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
     }
 
     return BOT_ADD_SUCCESS;

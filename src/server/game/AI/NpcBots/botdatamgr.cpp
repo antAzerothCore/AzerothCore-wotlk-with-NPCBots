@@ -133,7 +133,7 @@ public:
 void SpawnWanderergBot(uint32 bot_id, WanderNode const* spawnLoc, NpcBotRegistry* registry)
 {
     CreatureTemplate const& bot_template = _botsWanderCreatureTemplates.at(bot_id);
-    NpcBotData const* bot_data = BotDataMgr::SelectNpcBotData(bot_id);
+    NpcBotData const* bot_data = BotDataMgr::SelectNpcBotData(0, bot_id);
     NpcBotExtras const* bot_extras = BotDataMgr::SelectNpcBotExtras(bot_id);
     Position spawnPos = spawnLoc->GetPosition();
 
@@ -226,7 +226,7 @@ private:
             if (c != BOT_CLASS_NONE && c != BOT_CLASS_BM && BotMgr::IsClassEnabled(c))
             {
                 ++enabledBotsCount;
-                if (_botsData.find(vt.first) == _botsData.end())
+                if (_botsDataByGUID[0].find(vt.first) == _botsDataByGUID[0].end())
                 {
                     ASSERT(_spareBotIdsPerClassMap.find(c) != _spareBotIdsPerClassMap.cend());
                     _spareBotIdsPerClassMap.at(c).insert(vt.first);
@@ -311,7 +311,7 @@ private:
         bot_template.InitializeQueryData();
 
         NpcBotData* bot_data = new NpcBotData(bot_ai::DefaultRolesForClass(bot_class), bot_faction, bot_ai::DefaultSpecForClass(bot_class));
-        _botsData[next_bot_id] = bot_data;
+        _botsDataByGUID[0][next_bot_id] = bot_data;
         NpcBotExtras* bot_extras = new NpcBotExtras();
         bot_extras->bclass = bot_class;
         bot_extras->race = orig_extras->race;
@@ -548,20 +548,20 @@ void BotDataMgr::Update(uint32 diff)
 
             bot->GetMap()->AddObjectToRemoveList(bot);
 
-            auto bditr = _botsData.find(bot_despawn_id);
+            auto bditr = _botsDataByGUID[0].find(bot_despawn_id);
             auto beitr = _botsExtras.find(bot_despawn_id);
             auto baditr = _botsAppearanceData.find(bot_despawn_id);
             auto bwcetitr = _botsWanderCreatureEquipmentTemplates.find(bot_despawn_id);
             auto bwctitr = _botsWanderCreatureTemplates.find(bot_despawn_id);
 
-            ASSERT(bditr != _botsData.end());
+            ASSERT(bditr != _botsDataByGUID[0].end());
             ASSERT(beitr != _botsExtras.end());
             //ASSERT(baditr != _botsAppearanceData.end()); may not exist
             ASSERT(bwcetitr != _botsWanderCreatureEquipmentTemplates.end());
             ASSERT(bwctitr != _botsWanderCreatureTemplates.end());
 
             delete bditr->second;
-            _botsData.erase(bditr);
+            _botsDataByGUID[0].erase(bditr);
             delete beitr->second;
             _botsExtras.erase(beitr);
             if (baditr != _botsAppearanceData.end())
@@ -725,15 +725,8 @@ void BotDataMgr::LoadNpcBots(bool spawn)
     //   14          15          16         17         18            19            20             21             22         23
         "equipWrist, equipHands, equipBack, equipBody, equipFinger1, equipFinger2, equipTrinket1, equipTrinket2, equipNeck, spells_disabled FROM characters_npcbot");
 
-    if (result)
+    if (!result)
     {
-        uint32 botcounter = 0;
-        uint32 datacounter = 0;
-        std::set<uint32> botgrids;
-        QueryResult infores;
-        CreatureTemplate const* proto;
-        NpcBotData* botData;
-        std::list<uint32> entryList;
         LOG_INFO("server.loading", ">> Loaded 0 npcbots. Table `characters_npcbot` is empty!");
         allBotsLoaded = true;
         return;
@@ -744,41 +737,35 @@ void BotDataMgr::LoadNpcBots(bool spawn)
     NpcBotData* botData;
     std::list<uint32> entryList;
 
-        do
+    do
+    {
+        field = result->Fetch();
+        index = 0;
+        uint32 entry =          field[  index].Get<uint32>();
+
+        //load data
+        botData = new NpcBotData(0, 0);
+        botData->owner =        field[++index].Get<uint32>();
+        botData->roles =        field[++index].Get<uint32>();
+        botData->spec =         field[++index].Get<uint8>();
+        botData->faction =      field[++index].Get<uint32>();
+
+        for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
+            botData->equips[i] = field[++index].Get<uint32>();
+
+        std::string disabled_spells_str = field[++index].Get<std::string>();
+        if (!disabled_spells_str.empty())
         {
-            field = result->Fetch();
-            index = 0;
-            uint32 entry =          field[  index].Get<uint32>();
-
-            if (!sObjectMgr->GetCreatureTemplate(entry))
-            {
-                LOG_ERROR("server.loading", "Bot entry {} doesn't exist in `creature_template` table! Skipped.", entry);
-                continue;
-            }
-
-            //load data
-            botData = new NpcBotData(0, 0);
-            botData->owner =        field[++index].Get<uint32>();
-            botData->roles =        field[++index].Get<uint32>();
-            botData->spec =         field[++index].Get<uint8>();
-            botData->faction =      field[++index].Get<uint32>();
-
-            for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
-                botData->equips[i] = field[++index].Get<uint32>();
-
-            std::string disabled_spells_str = field[++index].Get<std::string>();
-            if (!disabled_spells_str.empty())
-            {
-                std::vector<std::string_view> tok = Acore::Tokenize(disabled_spells_str, ' ', false);
-                for (std::vector<std::string_view>::size_type i = 0; i != tok.size(); ++i)
-                	botData->disabled_spells.insert(*(Acore::StringTo<uint32>(tok[i])));
-            }
+            std::vector<std::string_view> tok = Acore::Tokenize(disabled_spells_str, ' ', false);
+            for (std::vector<std::string_view>::size_type i = 0; i != tok.size(); ++i)
+                botData->disabled_spells.insert(*(Acore::StringTo<uint32>(tok[i])));
+        }
 
         entryList.push_back(entry);
         _botsDataByGUID[botData->owner][entry] = botData;
         ++datacounter;
 
-        } while (result->NextRow());
+    } while (result->NextRow());
 
     LOG_INFO("server.loading", ">> Loaded {} bot data entries for deletion", datacounter);
 
@@ -791,28 +778,28 @@ void BotDataMgr::LoadNpcBots(bool spawn)
     for (std::list<uint32>::const_iterator itr = entryList.begin(); itr != entryList.end(); ++itr)
     {
         uint32 entry = *itr;
+        
+        CharacterDatabase.DirectExecute("DELETE FROM `characters_npcbot` where entry = {}", entry);
+
         proto = sObjectMgr->GetCreatureTemplate(entry);
         if (!proto)
         {
             LOG_ERROR("server.loading", "Cannot find creature_template entry for npcbot (id: {})!", entry);
             continue;
         }
-        //                                     1     2    3           4            5           6
-        infores = WorldDatabase.Query("SELECT guid, map, position_x, position_y"/*, position_z, orientation*/" FROM creature WHERE id1 = {}", entry);
+
+        //                                                  1     2    3           4            5           6
+        QueryResult infores = WorldDatabase.Query("SELECT guid, map, position_x, position_y"/*, position_z, orientation*/" FROM creature WHERE id1 = {}", entry);
         if (!infores)
         {
-            LOG_ERROR("server.loading", "Cannot spawn npcbot {} (id: {}), not found in `creature` table!", proto->Name.c_str(), entry);
+            LOG_ERROR("server.loading", "Cannot delete npcbot {} (id: {}), not found in `creature` table!", proto->Name.c_str(), entry);
             continue;
         }
 
         WorldDatabase.DirectExecute("DELETE FROM `creature` where id1 = {}", entry);
     }
 
-    botgrids.sort();
-    botgrids.unique();
-    LOG_INFO("server.loading", ">> Spawned {} npcbot(s) within {} grid(s) in {} ms", botcounter, uint32(botgrids.size()), GetMSTimeDiffToNow(botoldMSTime));
-
-    allBotsLoaded = true;
+    _botsDataByGUID.clear();
 
     GenerateWanderingBots();
 }
@@ -1812,10 +1799,9 @@ EquipmentInfo const* BotDataMgr::GetBotEquipmentInfo(uint32 entry)
         return cit->second;
 }
 
-void BotDataMgr::AddNpcBotData(ObjectGuid owner_guid, uint32 entry, uint32 roles, uint8 spec, uint32 faction)
+void BotDataMgr::AddNpcBotData(uint32 owner, uint32 entry, uint32 roles, uint8 spec, uint32 faction)
 {
     //botData must be allocated explicitly
-    uint32 owner = owner_guid.GetCounter();
     NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
     if (itr0 == _botsDataByGUID.end())
         _botsDataByGUID[owner] = NpcBotDataMap();
@@ -1842,9 +1828,8 @@ void BotDataMgr::AddNpcBotData(ObjectGuid owner_guid, uint32 entry, uint32 roles
 
     LOG_ERROR("sql.sql", "BotMgr::AddNpcBotData(): trying to add new data but entry already exists! entry = {}", entry);
 }
-NpcBotData const* BotDataMgr::SelectNpcBotData(ObjectGuid owner_guid, uint32 entry)
+NpcBotData const* BotDataMgr::SelectNpcBotData(uint32 owner, uint32 entry)
 {
-    uint32 owner = owner_guid.GetCounter();
     //LOG_ERROR("server.loading", "SelectNpcBotData: {} {}", entry, owner);
     NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
     if (itr0 == _botsDataByGUID.end())
@@ -1853,9 +1838,8 @@ NpcBotData const* BotDataMgr::SelectNpcBotData(ObjectGuid owner_guid, uint32 ent
     NpcBotDataMap::const_iterator itr = _botsDataByGUID[owner].find(entry);
     return itr != _botsDataByGUID[owner].cend() ? itr->second : nullptr;
 }
-void BotDataMgr::UpdateNpcBotData(ObjectGuid owner_guid, uint32 entry, NpcBotDataUpdateType updateType, void* data)
+void BotDataMgr::UpdateNpcBotData(uint32 owner, uint32 entry, NpcBotDataUpdateType updateType, void* data)
 {
-    uint32 owner = owner_guid.GetCounter();
     //LOG_ERROR("server.loading", "UpdateNpcBotData: {} {} {}", updateType, entry, owner);
     NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
     if (itr0 == _botsDataByGUID.end())
