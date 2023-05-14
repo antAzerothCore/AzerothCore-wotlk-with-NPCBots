@@ -1610,6 +1610,7 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object* questgiver)
     }
 
     QuestGiverStatus result = DIALOG_STATUS_NONE;
+    uint32 criticalQuestId = 0;
 
     for (QuestRelations::const_iterator i = qir.first; i != qir.second; ++i)
     {
@@ -1641,6 +1642,7 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object* questgiver)
         if (result2 > result)
         {
             result = result2;
+            criticalQuestId = questId;
         }
     }
 
@@ -1724,9 +1726,13 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object* questgiver)
             }
         }
 
-        if (result2 > result)
+        if (result2 > result) {
             result = result2;
+            criticalQuestId = questId;
+        }
     }
+
+    sScriptMgr->ModifyQuestGiverStatus(this, result, criticalQuestId);
 
     return result;
 }

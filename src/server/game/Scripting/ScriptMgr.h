@@ -1457,6 +1457,7 @@ public:
     virtual void AnticheatUpdateMovementInfo(Player* /*player*/, MovementInfo const& /*movementInfo*/) { }
     [[nodiscard]] virtual bool AnticheatHandleDoubleJump(Player* /*player*/, Unit* /*mover*/) { return true; }
     [[nodiscard]] virtual bool AnticheatCheckMovementInfo(Player* /*player*/, MovementInfo const& /*movementInfo*/, Unit* /*mover*/, bool /*jump*/) { return true; }
+    virtual void ModifyQuestGiverStatus(Player* /*player*/, QuestGiverStatus& /*result*/, uint32 /*questId*/) { }
 };
 
 class AccountScript : public ScriptObject
@@ -2389,6 +2390,7 @@ public: /* PlayerScript */
     void AnticheatSetJumpingbyOpcode(Player* player, bool jump);
     bool AnticheatHandleDoubleJump(Player* player, Unit* mover);
     bool AnticheatCheckMovementInfo(Player* player, MovementInfo const& movementInfo, Unit* mover, bool jump);
+    void ModifyQuestGiverStatus(Player* player, QuestGiverStatus& result, uint32 questId);
 
 public: /* AccountScript */
     void OnAccountLogin(uint32 accountId);
