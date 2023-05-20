@@ -47,7 +47,7 @@ public:
         {
             _JustEngagedWith();
             events.ScheduleEvent(EVENT_GEHENNAS_CURSE, 6s, 9s);
-            events.ScheduleEvent(EVENT_RAIN_OF_FIRE, 10s);
+            events.ScheduleEvent(EVENT_RAIN_OF_FIRE, 20s);
             events.ScheduleEvent(EVENT_SHADOW_BOLT, 3s, 5s);
         }
 
@@ -67,7 +67,7 @@ public:
                     {
                         DoCast(target, SPELL_RAIN_OF_FIRE, true);
                     }
-                    events.RepeatEvent(6000);
+                    events.RepeatEvent(18000);
                     break;
                 }
                 case EVENT_SHADOW_BOLT:

@@ -65,7 +65,7 @@ public:
             _JustEngagedWith();
             events.ScheduleEvent(EVENT_INFERNO, 13s, 15s);
             events.ScheduleEvent(EVENT_IGNITE_MANA, 7s, 19s);
-            events.ScheduleEvent(EVENT_LIVING_BOMB, 11s, 16s);
+            events.ScheduleEvent(EVENT_LIVING_BOMB, 33s, 48s);
         }
 
         void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*dmgType*/, SpellSchoolMask /*school*/) override
@@ -110,7 +110,7 @@ public:
                         DoCast(target, SPELL_LIVING_BOMB);
                     }
 
-                    events.RepeatEvent(urand(11000, 16000));
+                    events.RepeatEvent(urand(33000, 48000));
                     break;
                 }
             }
