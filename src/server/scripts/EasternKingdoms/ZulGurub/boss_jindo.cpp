@@ -65,7 +65,7 @@ struct boss_jindo : public BossAI
         events.ScheduleEvent(EVENT_POWERFULL_HEALING_WARD, 16s);
         events.ScheduleEvent(EVENT_HEX, 8s);
         events.ScheduleEvent(EVENT_DELUSIONS_OF_JINDO, 10s);
-        events.ScheduleEvent(EVENT_TELEPORT, 5s);
+        events.ScheduleEvent(EVENT_TELEPORT, 10s);
 
         Talk(SAY_AGGRO);
 
@@ -142,7 +142,7 @@ struct boss_jindo : public BossAI
                 break;
             case EVENT_TELEPORT:
                 DoCastRandomTarget(SPELL_BANISH);
-                events.ScheduleEvent(EVENT_TELEPORT, 15s, 23s);
+                events.ScheduleEvent(EVENT_TELEPORT, 30s, 46s);
                 break;
             default:
                 break;

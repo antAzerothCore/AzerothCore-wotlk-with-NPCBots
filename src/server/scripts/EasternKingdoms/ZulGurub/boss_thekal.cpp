@@ -416,7 +416,7 @@ public:
                 context.Repeat(15s, 25s);
             }).Schedule(5s, [this](TaskContext context) {
                 DoCastVictim(SPELL_BLIND);
-                context.Repeat(10s, 20s);
+                context.Repeat(20s, 40s);
             });
         }
 

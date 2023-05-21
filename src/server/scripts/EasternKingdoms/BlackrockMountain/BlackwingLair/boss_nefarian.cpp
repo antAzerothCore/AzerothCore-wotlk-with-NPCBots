@@ -205,7 +205,7 @@ struct ClassCallSelector : public Acore::unary_function<Unit*, bool>
 
     bool operator()(Unit const* target) const
     {
-        if (!_me || !target || target->GetTypeId() != TYPEID_PLAYER)
+        if (!_me || !target || (target->GetTypeId() != TYPEID_PLAYER && !target->IsNPCBotOrPet()))
         {
             return false;
         }
@@ -466,7 +466,7 @@ public:
                             break;
                         case EVENT_MIND_CONTROL:
                             DoCastRandomTarget(SPELL_SHADOW_COMMAND, 0, 40.0f);
-                            events.ScheduleEvent(EVENT_MIND_CONTROL, 24s, 30s);
+                            events.ScheduleEvent(EVENT_MIND_CONTROL, 48s, 60s);
                             break;
                         case EVENT_SHADOWBLINK:
                             DoCastSelf(SPELL_SHADOWBLINK);
@@ -584,7 +584,7 @@ struct boss_nefarian : public BossAI
 
         if (id == 5)
         {
-            DoCastAOE(SPELL_SHADOWFLAME_INITIAL);
+            //DoCastAOE(SPELL_SHADOWFLAME_INITIAL);
         }
     }
 
@@ -683,7 +683,8 @@ struct boss_nefarian : public BossAI
                         {
                             if (ref->getTarget() && (ref->getTarget()->GetTypeId() == TYPEID_PLAYER || ref->getTarget()->IsNPCBotOrPet()))
                             {
-                                classesPresent.insert(ref->getTarget()->getClass());
+                                uint8 unitClass = ref->getTarget()->IsNPCBotOrPet() ? ref->getTarget()->ToCreature()->GetBotClass() : ref->getTarget()->getClass();
+                                classesPresent.insert(unitClass);
                             }
                         }
                     }
@@ -694,7 +695,9 @@ struct boss_nefarian : public BossAI
 
                     if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, ClassCallSelector(me, targetClass)))
                     {
-                        switch (target->getClass())
+                        uint8 unitClass = target->IsNPCBotOrPet() ? target->ToCreature()->GetBotClass() : target->getClass();
+
+                        switch (unitClass)
                         {
                             case CLASS_MAGE:
                                 Talk(SAY_MAGE);
