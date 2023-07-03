@@ -6319,6 +6319,17 @@ Unit* bot_ai::FindDistantTauntTarget(float maxdist, bool ally) const
         return nullptr;
 
     Unit* unit = unitList.size() == 1 ? *unitList.begin() : Acore::Containers::SelectRandomContainerElement(unitList);
+
+    Unit* victim = ally ? unit : unit->GetVictim();
+    bool victimIsTank = IsTank(victim) || (IsTankingClass(victim->GetClass()) && GetHealthPCT(victim) > 80);
+    bool victimIsOffTank = !IsOffTank() && victimIsTank;
+
+    if (IsOffTank() && victimIsTank)
+        return nullptr;
+
+    if (victimIsOffTank && IsPointedOffTankingTarget(unit))
+        return nullptr;
+
     return ally ? unit->GetVictim() : unit;
 }
 //Finds target for Warlock's Mana Drain
