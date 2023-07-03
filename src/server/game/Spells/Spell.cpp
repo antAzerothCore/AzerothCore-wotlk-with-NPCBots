@@ -3116,6 +3116,13 @@ SpellMissInfo Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask, bool scaleA
                 m_caster->SetContestedPvP();
                 if (m_caster->GetTypeId() == TYPEID_PLAYER && !m_spellInfo->HasAttribute(SPELL_ATTR0_CU_NO_PVP_FLAG))
                     m_caster->ToPlayer()->UpdatePvP(true);
+                //npcbot: bot assist case
+                else if (m_caster->IsNPCBotOrPet() && m_caster->ToCreature()->IsFreeBot())
+                {
+                    if (Unit const* bot = m_caster->IsNPCBotPet() ? m_caster->ToUnit()->GetCreator() : m_caster->ToUnit())
+                        BotMgr::SetBotContestedPvP(bot->ToCreature());
+                }
+                //end npcbot
             }
 
             // xinef: triggered spells should not prolong combat
@@ -4517,6 +4524,11 @@ void Spell::update(uint32 difftime)
                     SendChannelUpdate(0);
 
                     finish();
+
+                    //npcbot: signal channel finish to botmgr
+                    if (m_caster->IsNPCBot())
+                        BotMgr::OnBotChannelFinish(m_caster->ToUnit(), this);
+                    //end npcbot
                 }
                 // Xinef: Dont update channeled target list on last tick, allow auras to update duration properly
                 // Xinef: Added this strange check because of diffrent update routines for players / creatures
@@ -4527,6 +4539,11 @@ void Spell::update(uint32 difftime)
                     LOG_DEBUG("spells.aura", "Channeled spell {} is removed due to lack of targets", m_spellInfo->Id);
                     SendChannelUpdate(0);
                     finish();
+
+                    //npcbot: signal channel finish to botmgr
+                    if (m_caster->IsNPCBot())
+                        BotMgr::OnBotChannelFinish(m_caster->ToUnit(), this);
+                    //end npcbot
                 }
                 break;
             }
@@ -4562,6 +4579,11 @@ void Spell::finish(bool ok)
 
     if (Creature* creatureCaster = m_caster->ToCreature())
         creatureCaster->ReleaseFocus(this);
+
+    //npcbot
+    if (!ok && m_caster->IsNPCBotOrPet())
+        BotMgr::OnBotSpellGo(m_caster, this, false);
+    //end npcbot
 
     if (!ok)
     {
@@ -5774,8 +5796,7 @@ SpellCastResult Spell::CheckCast(bool strict)
             return SPELL_FAILED_NOT_READY;
 
         //npcbot
-        if (m_caster->IsNPCBot() &&
-            m_caster->ToCreature()->HasSpellCooldown(m_spellInfo->Id))
+        if (m_caster->IsNPCBot() && m_caster->ToCreature()->HasSpellCooldown(m_spellInfo->Id) && !IsIgnoringCooldowns())
         {
             //TC_LOG_ERROR("spells", "%s has cd of %u on %s", m_caster->GetName().c_str(), m_caster->ToCreature()->GetCreatureSpellCooldownDelay(m_spellInfo->Id), m_spellInfo->SpellName[0]);
             if (m_triggeredByAuraSpell)
@@ -6779,7 +6800,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                             return SPELL_FAILED_CHARMED;
 
                         //npcbot: do not allow to charm owned npcbots
-                        if (target->GetCreatorGUID() && target->GetCreatorGUID().IsPlayer())
+                        if (target->GetCreator() && target->GetCreator()->IsPlayer())
                             return SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
                         else if (target->IsNPCBotOrPet())
                             return SPELL_FAILED_CANT_BE_CHARMED;

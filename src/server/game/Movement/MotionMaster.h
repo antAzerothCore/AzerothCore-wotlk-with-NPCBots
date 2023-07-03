@@ -205,6 +205,7 @@ public:
     void MoveChase(Unit* target, float dist) { MoveChase(target, ChaseRange(dist)); }
     void MoveCircleTarget(Unit* target);
     void MoveBackwards(Unit* target, float dist);
+    void MoveForwards(Unit* target, float dist);
     void MoveConfused();
     void MoveFleeing(Unit* enemy, uint32 time = 0);
     void MovePoint(uint32 id, const Position& pos, bool generatePath = true, bool forceDestination = true)
@@ -242,6 +243,10 @@ public:
     void ReinitializeMovement();
 
     bool GetDestination(float& x, float& y, float& z);
+
+    //npcbot: add an accessor for Mutate
+    void Add(MovementGenerator* m, MovementSlot slot = MOTION_SLOT_ACTIVE) { Mutate(m, slot); }
+    //end npcbot
 private:
     void Mutate(MovementGenerator* m, MovementSlot slot);                  // use Move* functions instead
 

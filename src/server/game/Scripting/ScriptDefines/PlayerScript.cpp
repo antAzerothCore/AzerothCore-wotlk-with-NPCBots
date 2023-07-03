@@ -154,11 +154,11 @@ void ScriptMgr::OnBeforeLootMoney(Player* player, Loot* loot)
     });
 }
 
-void ScriptMgr::OnGivePlayerXP(Player* player, uint32& amount, Unit* victim)
+void ScriptMgr::OnGivePlayerXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource)
 {
     ExecuteScript<PlayerScript>([&](PlayerScript* script)
     {
-        script->OnGiveXP(player, amount, victim);
+        script->OnGiveXP(player, amount, victim, xpSource);
     });
 }
 
@@ -582,6 +582,14 @@ void ScriptMgr::OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid 
     });
 }
 
+void ScriptMgr::OnBeforeFillQuestLootItem(Player* player, LootItem& item)
+{
+    ExecuteScript<PlayerScript>([&](PlayerScript* script)
+    {
+        script->OnBeforeFillQuestLootItem(player, item);
+    });
+}
+
 void ScriptMgr::OnStoreNewItem(Player* player, Item* item, uint32 count)
 {
     ExecuteScript<PlayerScript>([&](PlayerScript* script)
@@ -964,6 +972,20 @@ void ScriptMgr::OnGetMaxSkillValue(Player* player, uint32 skill, int32& result, 
     ExecuteScript<PlayerScript>([&](PlayerScript* script)
     {
         script->OnGetMaxSkillValue(player, skill, result, IsPure);
+    });
+}
+
+void ScriptMgr::OnUpdateGatheringSkill(Player *player, uint32 skillId, uint32 currentLevel, uint32 gray, uint32 green, uint32 yellow, uint32 &gain) {
+    ExecuteScript<PlayerScript>([&](PlayerScript* script)
+    {
+        script->OnUpdateGatheringSkill(player, skillId, gray, green, yellow, currentLevel, gain);
+    });
+}
+
+void ScriptMgr::OnUpdateCraftingSkill(Player *player, SkillLineAbilityEntry const* skill, uint32 currentLevel, uint32& gain) {
+    ExecuteScript<PlayerScript>([&](PlayerScript* script)
+    {
+        script->OnUpdateCraftingSkill(player, skill, currentLevel, gain);
     });
 }
 
