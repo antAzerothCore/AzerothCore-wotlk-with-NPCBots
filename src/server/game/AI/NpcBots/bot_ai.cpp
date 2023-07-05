@@ -7224,6 +7224,16 @@ bool bot_ai::Wait()
 
     waitTimer += BotMgr::GetBaseUpdateDelay();
 
+    // Slow down if off-tanking
+    Unit* mytar = me->GetVictim();
+    if (mytar) {
+        if ((IsTank() && !IsPointedTankingTarget(mytar)) || (IsOffTank() && !IsPointedOffTankingTarget(mytar))) {
+            Unit *victim = mytar->GetVictim();
+            if (victim != me && IsTank(victim)) 
+                waitTimer += 3000;
+        }
+    }
+
     return false;
 }
 //Spell Mod Hooks
