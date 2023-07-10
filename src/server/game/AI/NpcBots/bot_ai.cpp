@@ -6320,8 +6320,8 @@ Unit* bot_ai::FindDistantTauntTarget(float maxdist, bool ally) const
 
     Unit* unit = unitList.size() == 1 ? *unitList.begin() : Acore::Containers::SelectRandomContainerElement(unitList);
 
-    Unit* victim = ally ? unit : unit->GetVictim();
-    bool victimIsTank = IsTank(victim) || (IsTankingClass(victim->GetClass()) && GetHealthPCT(victim) > 80);
+    Unit* victim = unit->GetVictim();
+    bool victimIsTank = IsTank(victim);
     bool victimIsOffTank = !IsOffTank() && victimIsTank;
 
     if (IsOffTank() && victimIsTank)
