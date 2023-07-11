@@ -15488,8 +15488,8 @@ void bot_ai::OnBotOwnerSpellGo(Spell const* spell, bool ok)
 
             //bug: gameobject damage is not sent to players (not visible in log)
             //tempfix: set bot as original caster
-            Spell* vehspell = new Spell(veh->GetBase(), spellInfo, TRIGGERED_NONE/*, me->GetGUID()*/);
-            vehspell->prepare(&targets);
+            //Spell* vehspell = new Spell(veh->GetBase(), spellInfo, TRIGGERED_NONE/*, me->GetGUID()*/);
+            //vehspell->prepare(&targets);
         }
     }
 }
