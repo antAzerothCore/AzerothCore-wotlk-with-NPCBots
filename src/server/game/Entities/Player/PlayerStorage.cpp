@@ -6830,7 +6830,7 @@ bool Player::Satisfy(DungeonProgressionRequirements const* ar, uint32 target_map
 
             if (questRequirement->faction == TEAM_NEUTRAL || questRequirement->faction == checkPlayer->GetTeamId(true))
             {
-                if (!checkPlayer->GetQuestRewardStatus(questRequirement->id))
+                if (!checkPlayer->GetQuestRewardStatus(questRequirement->id) && !checkPlayer->GetAccountQuestRewardStatus(questRequirement->id))
                 {
                     missingQuests->push_back(questRequirement);
                 }

@@ -207,7 +207,7 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo)
         {
             if (Player* player = unit->GetCharmerOrOwnerPlayerOrPlayerItself())
             {
-                condMeets = player->GetQuestRewardStatus(ConditionValue1);
+                condMeets = player->GetQuestRewardStatus(ConditionValue1) || player->GetAccountQuestRewardStatus(ConditionValue1);
             }
         }
         break;
