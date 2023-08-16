@@ -1407,6 +1407,7 @@ public:
     [[nodiscard]] bool GetMeleeAttackPoint(Unit* attacker, Position& pos);
     [[nodiscard]] bool isAttackingPlayer() const;
     [[nodiscard]] Unit* GetVictim() const { return m_attacking; }
+    [[nodiscard]] Unit* GetVictimRanged() const { return m_attackingRanged; }
 
     void CombatStop(bool includingCast = false);
     void CombatStopWithPets(bool includingCast = false);
@@ -2559,6 +2560,7 @@ protected:
 
     AttackerSet m_attackers;
     Unit* m_attacking;
+    Unit* m_attackingRanged;
 
     DeathState m_deathState;
 

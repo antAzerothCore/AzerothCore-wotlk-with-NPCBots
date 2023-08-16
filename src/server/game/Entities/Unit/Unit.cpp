@@ -4170,6 +4170,9 @@ void Unit::_UpdateAutoRepeatSpell()
         Spell* spell = new Spell(this, spellProto, TRIGGERED_FULL_MASK);
         spell->prepare(&(m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets));
 
+        m_attackingRanged = m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets.GetUnitTarget();
+        m_attackingRanged->_addAttacker(this);
+
         // Reset attack
         resetAttackTimer(RANGED_ATTACK);
     }
@@ -4281,9 +4284,15 @@ void Unit::InterruptSpell(CurrentSpellTypes spellType, bool withDelayed, bool wi
             return;
 
         // send autorepeat cancel message for autorepeat spells
-        if (spellType == CURRENT_AUTOREPEAT_SPELL)
+        if (spellType == CURRENT_AUTOREPEAT_SPELL) {
             if (GetTypeId() == TYPEID_PLAYER)
                 ToPlayer()->SendAutoRepeatCancel(this);
+            
+            if (m_attackingRanged) {
+                m_attackingRanged->_removeAttacker(this);
+                m_attackingRanged = nullptr;
+            }
+        }
 
         //npcbot
         if (IsNPCBot())
@@ -10872,7 +10881,7 @@ bool Unit::Attack(Unit* victim, bool meleeAttack)
 {
     if (!victim || victim == this)
         return false;
-
+    
     // dead units can neither attack nor be attacked
     if (!IsAlive() || !victim->IsAlive())
         return false;
