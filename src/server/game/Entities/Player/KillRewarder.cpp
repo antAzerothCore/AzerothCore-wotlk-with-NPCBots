@@ -167,13 +167,13 @@ void KillRewarder::_RewardXP(Player* player, float rate)
             AddPct(xp, (*i)->GetAmount());
 
         //npcbot 4.2.2.1. Apply NpcBot XP reduction
-        if (player->GetNpcBotsCount() > 1)
+        uint8 bots_count = player->GetNpcBotsCount();
+        uint8 xp_reduction = BotMgr::GetNpcBotXpReduction();
+        uint8 xp_reduction_start = BotMgr::GetNpcBotXpReductionStartingNumber();
+        if (xp_reduction_start > 0 && xp_reduction > 0 && bots_count >= xp_reduction_start)
         {
-            if (uint8 xp_reduction = BotMgr::GetNpcBotXpReduction())
-            {
-                uint32 ratePct = std::max<int32>(100 - ((player->GetNpcBotsCount() - 1) * xp_reduction), 10);
-                xp = xp * ratePct / 100;
-            }
+            uint32 ratePct = std::max<int32>(100 - ((bots_count - (xp_reduction_start - 1)) * xp_reduction), 10);
+            xp = xp * ratePct / 100;
         }
         //end npcbot
 
@@ -186,11 +186,11 @@ void KillRewarder::_RewardXP(Player* player, float rate)
     }
 }
 
-void KillRewarder::_RewardReputation(Player* player, float rate)
+void KillRewarder::_RewardReputation(Player* player)
 {
     // 4.3. Give reputation (player must not be on BG).
     // Even dead players and corpses are rewarded.
-    player->RewardReputation(_victim, rate);
+    player->RewardReputation(_victim);
 }
 
 void KillRewarder::_RewardKillCredit(Player* player)
@@ -220,7 +220,6 @@ void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
     if (!_isPvP || _isBattleGround)
     {
         float xpRate = _group ? _groupRate * float(player->GetLevel()) / _aliveSumLevel : /*Personal rate is 100%.*/ 1.0f; // Group rate depends on the sum of levels.
-        float reputationRate = _group ? _groupRate * float(player->GetLevel()) / _sumLevel : /*Personal rate is 100%.*/ 1.0f; // Group rate depends on the sum of levels.
         sScriptMgr->OnRewardKillRewarder(player, isDungeon, xpRate);                                              // Personal rate is 100%.
 
         if (_xp)
@@ -231,7 +230,7 @@ void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
         if (!_isBattleGround)
         {
             // If killer is in dungeon then all members receive full reputation at kill.
-            _RewardReputation(player, isDungeon ? 1.0f : reputationRate);
+            _RewardReputation(player);
             _RewardKillCredit(player);
         }
     }
