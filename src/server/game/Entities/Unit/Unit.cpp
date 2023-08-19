@@ -4133,6 +4133,8 @@ void Unit::_UpdateAutoRepeatSpell()
         return;
     }
 
+    m_attackingRanged = m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets.GetUnitTarget();
+    
     static uint32 const HUNTER_AUTOSHOOT = 75;
 
     // Check "realtime" interrupts
@@ -4170,8 +4172,6 @@ void Unit::_UpdateAutoRepeatSpell()
         // We want to shoot
         Spell* spell = new Spell(this, spellProto, TRIGGERED_FULL_MASK);
         spell->prepare(&(m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets));
-
-        m_attackingRanged = m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets.GetUnitTarget();
 
         // Reset attack
         resetAttackTimer(RANGED_ATTACK);
