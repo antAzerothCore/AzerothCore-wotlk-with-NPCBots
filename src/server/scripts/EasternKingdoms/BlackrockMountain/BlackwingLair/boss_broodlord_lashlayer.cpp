@@ -181,11 +181,11 @@ class go_suppression_device : public GameObjectScript
                     switch (eventId)
                     {
                         case EVENT_SUPPRESSION_CAST:
-                            //if (_instance->GetBossState(DATA_BROODLORD_LASHLAYER) == DONE)
-                            //{
+                            if (_instance->GetBossState(DATA_BROODLORD_LASHLAYER) == DONE)
+                            {
                                 Deactivate();
                                 return;
-                            //}
+                            }
 
                             if (me->GetGoState() == GO_STATE_READY)
                             {
@@ -195,7 +195,7 @@ class go_suppression_device : public GameObjectScript
                             _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 5s);
                             break;
                         case EVENT_SUPPRESSION_RESET:
-                            //Activate();
+                            Activate();
                             break;
                     }
                 }
