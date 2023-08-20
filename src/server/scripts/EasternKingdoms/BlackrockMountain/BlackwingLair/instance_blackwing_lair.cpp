@@ -525,7 +525,7 @@ public:
 
     bool OnTrigger(Player* player, AreaTrigger const* /*trigger*/) override
     {
-        if (!player->IsAlive() && player->GetQuestRewardStatus(QUEST_BLACKHANDS_COMMAND))
+        if (!player->IsAlive() && player->GetAccountQuestRewardStatus(QUEST_BLACKHANDS_COMMAND))
         {
             player->TeleportTo(MAP_BWL, orbOfCommandTP.m_positionX, orbOfCommandTP.m_positionY, orbOfCommandTP.m_positionZ, orbOfCommandTP.m_orientation);
             return true;
