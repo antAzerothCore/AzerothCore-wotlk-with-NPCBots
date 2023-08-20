@@ -144,6 +144,12 @@ class go_suppression_device : public GameObjectScript
     public:
         go_suppression_device() : GameObjectScript("go_suppression_device") { }
 
+        bool OnGossipHello(Player* player, GameObject* go) override
+        {
+            go->AI()->DoAction(ACTION_DISARMED);
+            return true;
+        }
+
         void OnLootStateChanged(GameObject* go, uint32 state, Unit* /*unit*/) override
         {
             switch (state)
@@ -169,7 +175,7 @@ class go_suppression_device : public GameObjectScript
                     return;
                 }
 
-                _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 5s);
+                _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 7s);
             }
 
             void UpdateAI(uint32 diff) override
@@ -192,7 +198,7 @@ class go_suppression_device : public GameObjectScript
                                 me->CastSpell(nullptr, SPELL_SUPPRESSION_AURA);
                                 me->SendCustomAnim(0);
                             }
-                            _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 5s);
+                            _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 7s);
                             break;
                         case EVENT_SUPPRESSION_RESET:
                             Activate();
@@ -228,7 +234,7 @@ class go_suppression_device : public GameObjectScript
                     me->SetGoState(GO_STATE_READY);
                 me->SetLootState(GO_READY);
                 me->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
-                _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 5s);
+                _events.ScheduleEvent(EVENT_SUPPRESSION_CAST, 7s);
                 me->Respawn();
             }
 
