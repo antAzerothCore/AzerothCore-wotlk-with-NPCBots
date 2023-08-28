@@ -11022,6 +11022,7 @@ bool Unit::AttackStop()
 
     m_attacking->_removeAttacker(this);
     m_attacking = nullptr;
+    m_attackingRanged = nullptr;
 
     // Clear our target
     SetTarget(ObjectGuid::Empty);
