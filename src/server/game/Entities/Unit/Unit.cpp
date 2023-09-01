@@ -4132,8 +4132,6 @@ void Unit::_UpdateAutoRepeatSpell()
     {
         return;
     }
-
-    m_attackingRanged = m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets.GetUnitTarget();
     
     static uint32 const HUNTER_AUTOSHOOT = 75;
 
@@ -4172,6 +4170,8 @@ void Unit::_UpdateAutoRepeatSpell()
         // We want to shoot
         Spell* spell = new Spell(this, spellProto, TRIGGERED_FULL_MASK);
         spell->prepare(&(m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets));
+        
+        m_attackingRanged = m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets.GetUnitTarget();
 
         // Reset attack
         resetAttackTimer(RANGED_ATTACK);
@@ -4288,8 +4288,11 @@ void Unit::InterruptSpell(CurrentSpellTypes spellType, bool withDelayed, bool wi
             if (GetTypeId() == TYPEID_PLAYER)
                 ToPlayer()->SendAutoRepeatCancel(this);
             
-            if (m_attackingRanged)
+            if (m_attackingRanged) {
                 m_attackingRanged = nullptr;
+                if (GetName() == "Neotms")
+                    LOG_ERROR("server.loading", "Ranged target reset");
+            }
         }
 
         //npcbot
