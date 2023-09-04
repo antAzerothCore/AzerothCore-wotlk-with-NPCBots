@@ -4288,11 +4288,8 @@ void Unit::InterruptSpell(CurrentSpellTypes spellType, bool withDelayed, bool wi
             if (GetTypeId() == TYPEID_PLAYER)
                 ToPlayer()->SendAutoRepeatCancel(this);
             
-            if (m_attackingRanged) {
+            if (m_attackingRanged)
                 m_attackingRanged = nullptr;
-                if (GetName() == "Neotms")
-                    LOG_ERROR("server.loading", "Ranged target reset");
-            }
         }
 
         //npcbot
