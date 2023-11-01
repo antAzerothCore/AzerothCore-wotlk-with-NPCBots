@@ -2794,6 +2794,12 @@ public:
             return true;
         }
 
+        if (chr->IsInCombat()) {
+            handler->SendSysMessage("Cannot delete bots when in combat!");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
         Player* botowner = bot->GetBotOwner()->ToPlayer();
 
         if (botowner && botowner != chr)
@@ -2845,6 +2851,11 @@ public:
         if (botowner && botowner != chr)
             return false;
 
+        if (chr->IsInCombat()) {
+            handler->SendSysMessage("Cannot delete bots when in combat!");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
         if (botowner)
             botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
 
@@ -3104,9 +3115,9 @@ public:
 
         Player* chr = handler->GetSession()->GetPlayer();
 
-        if (!chr->IsAlive())
+        if (!chr->IsAlive() || chr->IsInCombat())
         {
-            handler->SendSysMessage("Cannot spawn bots when defeated!");
+            handler->SendSysMessage("Cannot spawn bots when defeated or in combat!");
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -4039,7 +4050,13 @@ public:
         {
             if (master != owner)
                 return false;
-                
+            
+            if (master->IsInCombat()) {
+                handler->SendSysMessage("Cannot delete bots when in combat!");
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+            
             if (master->HaveBot())
             {
                 master->RemoveAllBots(BOT_REMOVE_DISMISS);
@@ -4067,6 +4084,11 @@ public:
             if (master != owner)
                 return false;
 
+            if (master->IsInCombat()) {
+                handler->SendSysMessage("Cannot delete bots when in combat!");
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
             master->GetBotMgr()->RemoveBot(cre->GetGUID(), BOT_REMOVE_DISMISS);
             if (master->GetBotMgr()->GetBot(cre->GetGUID()) == nullptr)
             {
