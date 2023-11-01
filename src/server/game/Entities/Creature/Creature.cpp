@@ -2288,6 +2288,17 @@ bool Creature::HasMechanicTemplateImmunity(uint32 mask) const
     return !GetOwnerGUID().IsPlayer() && (GetCreatureTemplate()->MechanicImmuneMask & mask);
 }
 
+bool Creature::HasMechanicImmunity(uint32 mask) const
+{
+    if (mask > MECHANIC_NONE) {
+        for (SpellImmuneList::const_iterator itr = m_spellImmune[IMMUNITY_MECHANIC].begin(); itr != m_spellImmune[IMMUNITY_MECHANIC].end(); ++itr)
+            if (itr->type == mask)
+                return true;
+    }
+
+    return false;
+}
+
 void Creature::LoadSpellTemplateImmunity()
 {
     // uint32 max used for "spell id", the immunity system will not perform SpellInfo checks against invalid spells
@@ -2316,6 +2327,23 @@ void Creature::LoadSpellTemplateImmunity()
             }
         }
     }
+
+    // unapply template immunities (in case we're updating entry)
+    for (uint32 i = MECHANIC_NONE; i <= MAX_MECHANIC; ++i)
+    {
+        ApplySpellImmune(placeholderSpellId, IMMUNITY_MECHANIC, i, false);
+    }
+    
+    if (uint32 mask = GetCreatureTemplate()->MechanicImmuneMask)
+    {
+        for (uint32 i = MECHANIC_NONE; i <= MAX_MECHANIC; ++i)
+        {
+            if (mask & (1 << i))
+            {
+                ApplySpellImmune(placeholderSpellId, IMMUNITY_MECHANIC, 1 << i, true);
+            }
+        }
+    }
 }
 
 bool Creature::IsImmunedToSpell(SpellInfo const* spellInfo, Spell const* spell)
@@ -2328,7 +2356,7 @@ const
 
     // Xinef: this should exclude self casts...
     // Spells that don't have effectMechanics.
-    if (spellInfo->Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1 << (spellInfo->Mechanic - 1)))
+    if (spellInfo->Mechanic > MECHANIC_NONE && HasMechanicImmunity(1 << (spellInfo->Mechanic - 1)))
         return true;
 
     // This check must be done instead of 'if (GetCreatureTemplate()->MechanicImmuneMask & (1 << (spellInfo->Mechanic - 1)))' for not break
@@ -2348,8 +2376,7 @@ const
 
 bool Creature::IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index) const
 {
-    // Xinef: this should exclude self casts...
-    if (spellInfo->Effects[index].Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1 << (spellInfo->Effects[index].Mechanic - 1)))
+    if (spellInfo->Mechanic > MECHANIC_NONE && HasMechanicImmunity(1 << (spellInfo->Effects[index].Mechanic - 1)))
         return true;
 
     if (GetCreatureTemplate()->type == CREATURE_TYPE_MECHANICAL && spellInfo->Effects[index].Effect == SPELL_EFFECT_HEAL)

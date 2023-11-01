@@ -111,6 +111,7 @@ public:
     //end npcbot
 
     [[nodiscard]] bool HasMechanicTemplateImmunity(uint32 mask) const;
+    [[nodiscard]] bool HasMechanicImmunity(uint32 mask) const;
     // redefine Unit::IsImmunedToSpell
     bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index) const override;
     // redefine Unit::IsImmunedToSpellEffect
