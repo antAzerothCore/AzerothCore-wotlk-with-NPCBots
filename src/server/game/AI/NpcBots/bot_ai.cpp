@@ -7413,6 +7413,11 @@ void bot_ai::ApplyBotThreatMods(SpellInfo const* spellInfo, float& threat) const
 {
     //ALL threat mods
     ApplyClassThreatMods(spellInfo, threat);
+
+    if (IsTank() || IsOffTank())
+        threat *= 1.1f;
+    else
+        threat = 0.9f;
 }
 void bot_ai::ApplyBotEffectValueMultiplierMods(SpellInfo const* spellInfo, SpellEffIndex effIndex, float& multiplier) const
 {
