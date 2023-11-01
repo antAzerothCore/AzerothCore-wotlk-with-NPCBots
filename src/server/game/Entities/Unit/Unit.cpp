@@ -2921,13 +2921,7 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
 
     // Miss chance based on melee
     //float miss_chance = MeleeMissChanceCalc(victim, attType);
-
-    // Cap skillDiff to 0 (0 levels) - prevents gray mobs from having increased missing chance.
-    // Tweaked for open world scaling
-    int32 skillDiff = int32(GetWeaponSkillValue(attType, victim)) - int32(victim->GetMaxSkillValueForLevel(this));
-    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && skillDiff < 0) skillDiff = 0;
-
-    float miss_chance = MeleeSpellMissChance(victim, attType, skillDiff, 0);
+    float miss_chance = MeleeSpellMissChance(victim, attType, int32(GetWeaponSkillValue(attType, victim)) - int32(victim->GetMaxSkillValueForLevel(this)), 0);
 
     // Critical hit chance
     float crit_chance = GetUnitCriticalChance(attType, victim);
@@ -4132,7 +4126,7 @@ void Unit::_UpdateAutoRepeatSpell()
     {
         return;
     }
-    
+
     static uint32 const HUNTER_AUTOSHOOT = 75;
 
     // Check "realtime" interrupts
@@ -9551,7 +9545,7 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
                 else if (auraSpellInfo->Id == 71761) // Deep Freeze Immunity State (only permanent)
                 {
                     Creature* creature = victim->ToCreature();
-                    if (!creature || !creature->HasMechanicTemplateImmunity(1 << (MECHANIC_STUN - 1)))
+                    if (!creature || !creature->HasMechanicImmunity(1 << (MECHANIC_STUN - 1)))
                         return false;
                 }
                 break;
@@ -10887,7 +10881,7 @@ bool Unit::Attack(Unit* victim, bool meleeAttack)
 {
     if (!victim || victim == this)
         return false;
-    
+
     // dead units can neither attack nor be attacked
     if (!IsAlive() || !victim->IsAlive())
         return false;
@@ -15311,8 +15305,7 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     if (creature
         && !IsPet()
         && !(IsControlledByPlayer() && IsVehicle())
-        && !(creature->HasMechanicTemplateImmunity(MECHANIC_SNARE))
-        && !(creature->IsDungeonBoss()))
+        && !creature->HasMechanicImmunity(MECHANIC_SNARE))
     {
         // 1.6% for each % under 30.
         // use min(0, health-30) so that we don't boost mobs above 30.

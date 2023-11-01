@@ -2776,21 +2776,6 @@ uint32 Map::GetPlayersCountExceptGMs() const
     return count;
 }
 
-uint32 Map::GetPlayersCountExceptGMsAndNPCBots() const
-{
-    uint32 count = 0;
-    for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
-    {
-        Player *Player = itr->GetSource();
-        if (!Player->IsGameMaster())
-        {
-            ++count;
-        }
-    }
-
-    return count;
-}
-
 void Map::SendToPlayers(WorldPacket const* data) const
 {
     for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)

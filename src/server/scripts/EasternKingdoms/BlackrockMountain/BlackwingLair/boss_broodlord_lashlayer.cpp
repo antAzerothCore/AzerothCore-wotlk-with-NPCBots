@@ -144,7 +144,7 @@ class go_suppression_device : public GameObjectScript
     public:
         go_suppression_device() : GameObjectScript("go_suppression_device") { }
 
-        bool OnGossipHello(Player* player, GameObject* go) override
+        bool OnGossipHello(Player* /*player*/, GameObject* go) override
         {
             go->AI()->DoAction(ACTION_DISARMED);
             return true;

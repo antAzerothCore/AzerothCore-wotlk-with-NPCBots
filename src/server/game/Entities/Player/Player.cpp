@@ -4334,8 +4334,6 @@ void Player::DeleteFromDB(ObjectGuid::LowType lowGuid, uint32 accountId, bool up
                 uint32 newOwner = 0;
                 BotDataMgr::UpdateNpcBotDataAll(lowGuid, NPCBOT_UPDATE_OWNER, &newOwner);
                 //end npcbot
-                
-                CharacterDatabase.DirectExecute("DELETE FROM `individualnpcbot` WHERE owner = {}", lowGuid);
 
                 sScriptMgr->OnDeleteFromDB(trans, lowGuid);
 
@@ -12093,6 +12091,7 @@ void Player::learnSkillRewardedSpells(uint32 skill_id, uint32 skill_value)
         {
             continue;
         }
+
         // need unlearn spell
         if (skill_value < pAbility->MinSkillLineRank && pAbility->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_VALUE)
         {
@@ -12735,15 +12734,6 @@ uint32 Player::GetResurrectionSpellId()
 // Used in triggers for check "Only to targets that grant experience or honor" req
 bool Player::isHonorOrXPTarget(Unit* victim) const
 {
-    uint8 v_level = victim->GetLevel();
-    uint8 k_grey  = Acore::XP::GetGrayLevel(GetLevel());
-
-    // Victim level less gray level
-    if (v_level <= k_grey)
-    {
-        return false;
-    }
-
     if (victim->GetTypeId() == TYPEID_UNIT)
     {
         //npcbot: count npcbots at xp targets (DEPRECATED)

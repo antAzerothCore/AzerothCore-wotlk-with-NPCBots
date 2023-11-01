@@ -808,14 +808,6 @@ public:
             RefreshAura(HASTE_DODGE_PASSIVE, lvl >= 45);
         }
 
-    protected:
-        void ApplyClassDamageMultiplierSpell(int32& damage, SpellNonMeleeDamage& /*damageinfo*/, SpellInfo const* spellInfo, WeaponAttackType /*attackType*/, bool /*iscrit*/) const override
-        {
-            float fdamage = float(damage);
-
-            damage = int32(fdamage);
-        }
-
     private:
         bool IsPetTypeSpell(uint32 basespell) const
         {

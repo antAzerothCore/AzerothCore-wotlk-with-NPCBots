@@ -39,7 +39,6 @@ typedef std::unordered_map<uint32 /*guid*/, NpcBotDataMap> NpcBotDataMapByGUID;
 typedef std::unordered_map<uint32 /*entry*/, NpcBotAppearanceData*> NpcBotAppearanceDataMap;
 typedef std::unordered_map<uint32 /*entry*/, NpcBotExtras*> NpcBotExtrasMap;
 typedef std::unordered_map<uint32 /*entry*/, NpcBotTransmogData*> NpcBotTransmogDataMap;
-//NpcBotDataMap _botsData;
 NpcBotDataMapByGUID _botsDataByGUID;
 NpcBotAppearanceDataMap _botsAppearanceData;
 NpcBotExtrasMap _botsExtras;
@@ -2691,12 +2690,6 @@ std::vector<uint32> BotDataMgr::GetExistingNPCBotIds()
     ASSERT(AllBotsLoaded());
 
     std::vector<uint32> existing_ids;
-    /*
-    existing_ids.reserve(_botsData.size());
-    for (decltype(_botsData)::value_type const& bot_data_pair : _botsData)
-        existing_ids.push_back(bot_data_pair.first);
-    */
-
     return existing_ids;
 }
 

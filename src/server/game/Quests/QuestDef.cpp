@@ -204,7 +204,7 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     {
         return 0;
     }
-    
+
     uint32 xp = xpentry->Exp[RewardXPDifficulty];
     if (xp <= 100)
     {
@@ -222,7 +222,7 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     {
         xp = 50 * ((xp + 25) / 50);
     }
-    
+
     // Scaling Factor for high level players
     float diffFactor = 1.0f;
     uint8 GrayLevel = Acore::XP::GetGrayLevel(playerLevel);

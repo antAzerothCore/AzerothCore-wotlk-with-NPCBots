@@ -1136,7 +1136,7 @@ public:
 
             uint8 lvl = me->GetLevel();
             float fdamage = float(damage);
-            
+
             //apply bonus damage mods
             float pctbonus = 0.0f;
             if (iscrit)

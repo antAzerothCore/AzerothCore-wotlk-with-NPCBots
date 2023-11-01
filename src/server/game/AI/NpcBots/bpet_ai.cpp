@@ -1051,9 +1051,6 @@ void bot_pet_ai::SetPetStats(bool force)
                 //Shark Attack
                 if (level >= 80)
                     amount += 6;
-
-                // hack
-                amount *= 0.35f;
                 break;
             default:
                 break;

@@ -1674,7 +1674,6 @@ bool ScriptMgr::AnticheatCheckMovementInfo(Player* player, MovementInfo const& m
     return true;
 }
 
-
 void ScriptMgr::ModifyQuestGiverStatus(Player* player, QuestGiverStatus& result, uint32 questId)
 {
     ExecuteScript<PlayerScript>([&](PlayerScript* script)
