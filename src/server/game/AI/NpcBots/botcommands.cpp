@@ -3114,15 +3114,31 @@ public:
         }
 
         Player* chr = handler->GetSession()->GetPlayer();
-
         if (!chr->IsAlive() || chr->IsInCombat())
         {
             handler->SendSysMessage("Cannot spawn bots when defeated or in combat!");
             handler->SetSentErrorMessage(true);
             return false;
         }
-        
-        //LOG_ERROR("server.loading", "NpcBotSpawn: {} {}", id, chr->GetGUID().GetCounter());
+
+        // Check if player character is in the hardcore challenge
+        bool isHardcore = chr->GetPlayerSetting("mod-challenge-modes", 0).value;
+
+        if (isHardcore) {
+            // Check if this bot class can be summoned
+            std::string source = "mod-npcbot-balance-botdeaths";
+            NpcBotExtras const* botInfo = BotDataMgr::SelectNpcBotExtras(id);
+            if (botInfo) {
+                uint8 botClass = botInfo->bclass;
+                uint32 botDeathMask = chr->GetPlayerSetting(source, 0).value;
+                
+                if (botDeathMask & (1 << botClass)) {
+                    handler->SendSysMessage("You can no longer spawn a bot of this class.");
+                    handler->SetSentErrorMessage(true);
+                    return false;
+                }
+            }
+        }
         
         if (id == BOT_ENTRY_MIRROR_IMAGE_BM)
         {
@@ -3197,7 +3213,6 @@ public:
         if (bot) bot->SetBotOwner(chr);
 
         handler->SendSysMessage("NpcBot successfully spawned");
-
         return true;
     }
 
@@ -3240,7 +3255,6 @@ public:
         NpcBotRegistry const& all_bots = BotDataMgr::GetExistingNPCBots();
         //using std::remove_if with sets requires c++20
         std::vector<NpcBotRegistry::value_type> free_bots;
-        
         std::stringstream ss;
         if (free_bots.empty())
             ss << "No free bots found!";
