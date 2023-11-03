@@ -2237,8 +2237,6 @@ void BotDataMgr::AddNpcBotData(uint32 owner, uint32 entry, uint32 roles, uint8 s
     if (itr0 == _botsDataByGUID.end())
         _botsDataByGUID[owner] = NpcBotDataMap();
 
-    //LOG_ERROR("server.loading", "AddNpcBotData: {} {}", entry, owner);
-
     NpcBotDataMap::iterator itr = _botsDataByGUID[owner].find(entry);
     if (itr == _botsDataByGUID[owner].end())
     {
@@ -2261,7 +2259,6 @@ void BotDataMgr::AddNpcBotData(uint32 owner, uint32 entry, uint32 roles, uint8 s
 }
 NpcBotData const* BotDataMgr::SelectNpcBotData(uint32 owner, uint32 entry)
 {
-    //LOG_ERROR("server.loading", "SelectNpcBotData: {} {}", entry, owner);
     NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
     if (itr0 == _botsDataByGUID.end())
         return nullptr;
@@ -2271,7 +2268,6 @@ NpcBotData const* BotDataMgr::SelectNpcBotData(uint32 owner, uint32 entry)
 }
 void BotDataMgr::UpdateNpcBotData(uint32 owner, uint32 entry, NpcBotDataUpdateType updateType, void* data)
 {
-    //LOG_ERROR("server.loading", "UpdateNpcBotData: {} {} {}", updateType, entry, owner);
     NpcBotDataMapByGUID::iterator itr0 = _botsDataByGUID.find(owner);
     if (itr0 == _botsDataByGUID.end())
         return;

@@ -1596,7 +1596,6 @@ BotAddResult BotMgr::AddBot(Creature* bot)
             AddBotToGroup(bot);
 
         uint32 newOwner = _owner->GetGUID().GetCounter();
-        //LOG_ERROR("server.loading", "AddBot: {} {}", bot->GetGUID().GetCounter(), newOwner);
         BotDataMgr::UpdateNpcBotData(_owner->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
     }
 
@@ -1673,9 +1672,6 @@ bool BotMgr::RemoveBotFromGroup(Creature* bot)
 
     gr->RemoveMember(bot->GetGUID());
 
-    //if removed from group while in instance / bg then remove from world immediately
-    //if (bot->IsInWorld() && RestrictBots(bot, true))
-        //TeleportBot(bot, bot->GetMap(), bot);
 
     return true;
 }
