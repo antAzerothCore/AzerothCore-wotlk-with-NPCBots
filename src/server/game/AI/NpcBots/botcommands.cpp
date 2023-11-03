@@ -50,16 +50,16 @@ enum rbac
 {
     RBAC_PERM_COMMAND_NPCBOT                                 = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_ADD                             = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_REMOVE                          = SEC_PLAYER,
-    RBAC_PERM_COMMAND_NPCBOT_SPAWN                           = SEC_PLAYER,
-    RBAC_PERM_COMMAND_NPCBOT_MOVE                            = SEC_PLAYER,
+    RBAC_PERM_COMMAND_NPCBOT_REMOVE                          = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_SPAWN                           = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_MOVE                            = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_DELETE                          = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_LOOKUP                          = SEC_PLAYER,
-    RBAC_PERM_COMMAND_NPCBOT_REVIVE                          = SEC_PLAYER,
+    RBAC_PERM_COMMAND_NPCBOT_LOOKUP                          = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_REVIVE                          = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_RELOADCONFIG                    = SEC_GAMEMASTER,
     RBAC_PERM_COMMAND_NPCBOT_INFO                            = SEC_PLAYER,
-    RBAC_PERM_COMMAND_NPCBOT_HIDE                            = SEC_GAMEMASTER,
-    RBAC_PERM_COMMAND_NPCBOT_UNHIDE                          = SEC_GAMEMASTER,
+    RBAC_PERM_COMMAND_NPCBOT_HIDE                            = SEC_PLAYER,
+    RBAC_PERM_COMMAND_NPCBOT_UNHIDE                          = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_RECALL                          = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_KILL                            = SEC_PLAYER,
     RBAC_PERM_COMMAND_NPCBOT_DEBUG_RAID                      = SEC_GAMEMASTER,
@@ -2067,9 +2067,6 @@ public:
         }
         if (Creature* bot = owner->GetBotMgr()->GetBot(guid))
         {
-            if (bot->GetBotOwner() != owner)
-                return false;
-
             owner->GetBotMgr()->KillBot(bot);
             return true;
         }
@@ -2794,29 +2791,19 @@ public:
             return true;
         }
 
-        if (chr->IsInCombat()) {
-            handler->SendSysMessage("Cannot delete bots when in combat!");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
-        Player* botowner = bot->GetBotOwner()->ToPlayer();
-
-        if (botowner && botowner != chr)
-            return false;
-
+        Player const* botowner = bot->GetBotOwner()->ToPlayer();
         if (botowner)
             botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
 
-        const_cast<Creature*>(bot)->CombatStop();
+        bot->CombatStop();
         bot->GetBotAI()->Reset();
         bot->GetBotAI()->canUpdate = false;
-        const_cast<Creature*>(bot)->DeleteFromDB();
-        const_cast<Creature*>(bot)->AddObjectToRemoveList();
+        bot->DeleteFromDB();
+        bot->AddObjectToRemoveList();
 
         BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
 
-        handler->SendSysMessage("Npcbot successfully deleted");
+        handler->PSendSysMessage("Npcbot %s successfully deleted", bot->GetName().c_str());
         return true;
     }
 
@@ -2845,17 +2832,10 @@ public:
             return false;
         }
 
-        Player* chr = handler->GetSession()->GetPlayer();
+        Player* chr = !handler->IsConsole() ? handler->GetSession()->GetPlayer() : nullptr;
         Player const* botowner = bot->GetBotOwner()->ToPlayer();
 
-        if (botowner && botowner != chr)
-            return false;
 
-        if (chr->IsInCombat()) {
-            handler->SendSysMessage("Cannot delete bots when in combat!");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
         if (botowner)
             botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
 
@@ -2873,9 +2853,8 @@ public:
 
     static bool HandleNpcBotDeleteFreeCommand(ChatHandler* handler)
     {
-        Player* chr = handler->GetSession()->GetPlayer();
-
         uint32 count = 0;
+        Player* chr = handler->GetSession()->GetPlayer();
         for (uint32 creature_id : BotDataMgr::GetExistingNPCBotIds())
             if (NpcBotData const* botData = BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), creature_id))
                 if (botData->owner == 0)
@@ -3113,33 +3092,6 @@ public:
             return false;
         }
 
-        Player* chr = handler->GetSession()->GetPlayer();
-        if (!chr->IsAlive() || chr->IsInCombat())
-        {
-            handler->SendSysMessage("Cannot spawn bots when defeated or in combat!");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
-        // Check if player character is in the hardcore challenge
-        bool isHardcore = chr->GetPlayerSetting("mod-challenge-modes", 0).value;
-
-        if (isHardcore) {
-            // Check if this bot class can be summoned
-            std::string source = "mod-npcbot-balance-botdeaths";
-            NpcBotExtras const* botInfo = BotDataMgr::SelectNpcBotExtras(id);
-            if (botInfo) {
-                uint8 botClass = botInfo->bclass;
-                uint32 botDeathMask = chr->GetPlayerSetting(source, 0).value;
-                
-                if (botDeathMask & (1 << botClass)) {
-                    handler->SendSysMessage("You can no longer spawn a bot of this class.");
-                    handler->SetSentErrorMessage(true);
-                    return false;
-                }
-            }
-        }
-        
         if (id == BOT_ENTRY_MIRROR_IMAGE_BM)
         {
             handler->PSendSysMessage("creature %u is a mirror image and cannot be spawned!", id);
@@ -3147,6 +3099,7 @@ public:
             return false;
         }
 
+        Player* chr = handler->GetSession()->GetPlayer();
         if (BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), id))
         {
             handler->PSendSysMessage("Npcbot %u already exists in `characters_npcbot` table!", id);
@@ -4049,28 +4002,10 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-            
-        Map* map = owner->GetMap();
-
-        if (map->Instanceable())
-        {
-            handler->SendSysMessage("Cannot remove bots in instances!");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
 
         Player* master = u->ToPlayer();
         if (master)
         {
-            if (master != owner)
-                return false;
-            
-            if (master->IsInCombat()) {
-                handler->SendSysMessage("Cannot delete bots when in combat!");
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
-            
             if (master->HaveBot())
             {
                 master->RemoveAllBots(BOT_REMOVE_DISMISS);
@@ -4094,15 +4029,6 @@ public:
         if (cre && cre->IsNPCBot() && !cre->IsFreeBot())
         {
             master = cre->GetBotOwner();
-            
-            if (master != owner)
-                return false;
-
-            if (master->IsInCombat()) {
-                handler->SendSysMessage("Cannot delete bots when in combat!");
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
             master->GetBotMgr()->RemoveBot(cre->GetGUID(), BOT_REMOVE_DISMISS);
             if (master->GetBotMgr()->GetBot(cre->GetGUID()) == nullptr)
             {
@@ -4132,18 +4058,8 @@ public:
             return false;
         }
 
-        if (owner->IsInCombat() || !owner->IsAlive())
-        {
-            handler->SendSysMessage("Cannot revive bots in combat or when defeated!");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
         if (Player* master = u->ToPlayer())
         {
-            if (master != owner)
-                return false;
-
             if (!master->HaveBot())
             {
                 handler->PSendSysMessage("%s has no npcbots!", master->GetName().c_str());
@@ -4157,9 +4073,6 @@ public:
         }
         else if (Creature* bot = u->ToCreature())
         {
-            if (bot->GetBotOwner() != owner)
-                return false;
-
             if (bot->GetBotAI())
             {
                 if (bot->IsAlive())
