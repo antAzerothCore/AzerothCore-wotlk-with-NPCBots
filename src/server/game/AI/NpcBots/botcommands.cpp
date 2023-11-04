@@ -3121,12 +3121,6 @@ public:
         //float o = chr->GetOrientation();
         Map* map = chr->GetMap();
 
-        if (map->Instanceable())
-        {
-            handler->SendSysMessage("Cannot spawn bots in instances!");
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
 
         Creature* creature = new Creature();
         if (!creature->Create(map->GenerateLowGuid<HighGuid::Unit>(), map, chr->GetPhaseMaskForSpawn(), id, 0, chr->GetPositionX(), chr->GetPositionY(), chr->GetPositionZ(), chr->GetOrientation()))
