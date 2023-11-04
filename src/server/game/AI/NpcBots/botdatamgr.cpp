@@ -812,7 +812,6 @@ void BotDataMgr::LoadNpcBots(bool spawn)
     } else {
         uint32 datacounter = 0;
         CreatureTemplate const* proto;
-        NpcBotData* botData;
         std::list<uint32> entryList;
 
         do
@@ -820,52 +819,17 @@ void BotDataMgr::LoadNpcBots(bool spawn)
             field = result->Fetch();
             index = 0;
             uint32 entry =          field[  index].Get<uint32>();
-
-            //load data
-            botData = new NpcBotData(0, 0);
-            botData->owner =        field[++index].Get<uint32>();
-            botData->roles =        field[++index].Get<uint32>();
-            botData->spec =         field[++index].Get<uint8>();
-            botData->faction =      field[++index].Get<uint32>();
-
-            for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
-                botData->equips[i] = field[++index].Get<uint32>();
-
-            std::string disabled_spells_str = field[++index].Get<std::string>();
-            if (!disabled_spells_str.empty())
-            {
-                std::vector<std::string_view> tok = Acore::Tokenize(disabled_spells_str, ' ', false);
-                for (std::vector<std::string_view>::size_type i = 0; i != tok.size(); ++i)
-                    botData->disabled_spells.insert(*(Acore::StringTo<uint32>(tok[i])));
-            }
-
             entryList.push_back(entry);
-            _botsDataByGUID[botData->owner][entry] = botData;
             ++datacounter;
-
         } while (result->NextRow());
 
         LOG_INFO("server.loading", ">> Loaded {} bot data entries for deletion", datacounter);
 
-        if (!spawn)
-        {
-            allBotsLoaded = true;
-            return;
-        }
-
         for (std::list<uint32>::const_iterator itr = entryList.begin(); itr != entryList.end(); ++itr)
         {
             uint32 entry = *itr;
-            
             CharacterDatabase.DirectExecute("DELETE FROM `characters_npcbot` where entry = {}", entry);
-
             proto = sObjectMgr->GetCreatureTemplate(entry);
-            if (!proto)
-            {
-                LOG_ERROR("server.loading", "Cannot find creature_template entry for npcbot (id: {})!", entry);
-                continue;
-            }
-
             //                                                  1     2    3           4            5           6
             QueryResult infores = WorldDatabase.Query("SELECT guid, map, position_x, position_y"/*, position_z, orientation*/" FROM creature WHERE id1 = {}", entry);
             if (!infores)
@@ -877,10 +841,8 @@ void BotDataMgr::LoadNpcBots(bool spawn)
             WorldDatabase.DirectExecute("DELETE FROM `creature` where id1 = {}", entry);
         }
 
-        _botsDataByGUID.clear();
+        allBotsLoaded = true;
     }
-
-    GenerateWanderingBots();
 }
 
 void BotDataMgr::LoadNpcBotGroupData()
