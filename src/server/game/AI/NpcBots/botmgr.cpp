@@ -987,7 +987,7 @@ bool BotMgr::RestrictBots(Creature const* bot, bool add) const
         else if (currMap->IsBattleArena())
             max_players = _owner->GetBattleground()->GetArenaType();
 
-        if (max_players && currMap->GetPlayersCountExceptGMs() > max_players)
+        if (max_players && currMap->GetPlayersCountExceptGMs() + uint32(add) > max_players)
             return true;
     }
 
@@ -1470,12 +1470,10 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
     // Remove From DB on logout or dismiss
     if (removetype == BOT_REMOVE_LOGOUT || removetype == BOT_REMOVE_DISMISS) {
         const_cast<Creature*>(bot)->CombatStop();
-        //bot->GetBotAI()->Reset();
         bot->GetBotAI()->canUpdate = false;
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
-        //LOG_ERROR("server.loading", "Logout/Dismiss: {} {}", bot->GetEntry(), OwnerGuid.GetCounter());
         BotDataMgr::UpdateNpcBotData(OwnerGuid.GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
     }
 }

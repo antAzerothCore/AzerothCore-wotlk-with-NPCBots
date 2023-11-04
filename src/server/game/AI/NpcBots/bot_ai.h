@@ -345,6 +345,7 @@ class bot_ai : public CreatureAI
 
         void LoadFromOwnerDB();
         void SaveToOwnerDB();
+        void UpdateVisuals();
         static bool IsFlagCarrier(Unit const* unit, BattlegroundTypeId bgTypeId = BATTLEGROUND_TYPE_NONE);
 
     protected:
