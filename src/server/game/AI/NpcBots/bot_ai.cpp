@@ -7407,9 +7407,9 @@ void bot_ai::ApplyBotThreatMods(SpellInfo const* spellInfo, float& threat) const
     ApplyClassThreatMods(spellInfo, threat);
 
     if (IsTank() || IsOffTank())
-        threat *= 1.1f;
+        threat *= 1.25f;
     else
-        threat = 0.9f;
+        threat = 0.75f;
 }
 void bot_ai::ApplyBotEffectValueMultiplierMods(SpellInfo const* spellInfo, SpellEffIndex effIndex, float& multiplier) const
 {
