@@ -474,7 +474,6 @@ public:
 
     [[nodiscard]] bool HavePlayers() const { return !m_mapRefMgr.IsEmpty(); }
     [[nodiscard]] uint32 GetPlayersCountExceptGMs() const;
-    [[nodiscard]] uint32 GetPlayersCountExceptGMsAndNPCBots() const;
 
     void AddWorldObject(WorldObject* obj) { i_worldObjects.insert(obj); }
     void RemoveWorldObject(WorldObject* obj) { i_worldObjects.erase(obj); }
