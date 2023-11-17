@@ -791,22 +791,6 @@ public:
     }
 };
 
-class dragonspine_door : public GameObjectScript
-{
-public:
-    dragonspine_door() : GameObjectScript("dragonspine_door") { }
-
-    bool OnGossipHello(Player* player, GameObject* go) override
-    {
-        if (player->GetAccountQuestRewardStatus(QUEST_SEAL_OF_ASCENSION)) {
-            go->SetGoState(GO_STATE_ACTIVE);
-            go->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
-        }
-
-        return true;
-    }
-};
-
 class near_scarshield_infiltrator : public AreaTriggerScript
 {
 public:
@@ -1107,7 +1091,6 @@ void AddSC_instance_blackrock_spire()
     new at_dragonspire_hall();
     new at_blackrock_stadium();
     new go_father_flame();
-    new dragonspine_door();
     new near_scarshield_infiltrator();
     new at_scarshield_infiltrator();
     RegisterSpellScript(spell_blackrock_spire_call_of_vaelastrasz);

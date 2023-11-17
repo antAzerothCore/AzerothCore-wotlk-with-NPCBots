@@ -148,11 +148,6 @@ enum npcspells
     SPELL_FINKLE_IS_EINHORN         = 16710
 };
 
-enum quests
-{
-    QUEST_SEAL_OF_ASCENSION         = 4743
-};
-
 template <class AI, class T>
 inline AI* GetBlackrockSpireAI(T* obj)
 {
