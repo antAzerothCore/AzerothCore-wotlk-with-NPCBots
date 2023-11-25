@@ -466,7 +466,7 @@ public:
                             break;
                         case EVENT_MIND_CONTROL:
                             DoCastRandomTarget(SPELL_SHADOW_COMMAND, 0, 40.0f);
-                            events.ScheduleEvent(EVENT_MIND_CONTROL, 48s, 60s);
+                            events.ScheduleEvent(EVENT_MIND_CONTROL, 24s, 30s);
                             break;
                         case EVENT_SHADOWBLINK:
                             DoCastSelf(SPELL_SHADOWBLINK);

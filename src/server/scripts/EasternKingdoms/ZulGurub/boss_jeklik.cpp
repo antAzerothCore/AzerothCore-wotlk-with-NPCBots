@@ -254,7 +254,7 @@ struct boss_jeklik : public BossAI
                     if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         if (Creature* flyingBat = me->SummonCreature(NPC_FRENZIED_BAT, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ() + 15.0f, 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 15000))
                             flyingBat->AI()->DoZoneInCombat();
-                    events.ScheduleEvent(EVENT_SPAWN_FLYING_BATS, 20s, 30s, PHASE_TWO);
+                    events.ScheduleEvent(EVENT_SPAWN_FLYING_BATS, 10s, 15s, PHASE_TWO);
                     break;
                 default:
                     break;

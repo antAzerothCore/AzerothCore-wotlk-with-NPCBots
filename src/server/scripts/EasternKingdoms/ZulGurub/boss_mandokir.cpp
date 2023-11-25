@@ -191,7 +191,7 @@ public:
             events.ScheduleEvent(EVENT_MORTAL_STRIKE, 14s, 28s);
             events.ScheduleEvent(EVENT_WHIRLWIND, 24s, 30s);
             events.ScheduleEvent(EVENT_CHECK_OHGAN, 1s);
-            events.ScheduleEvent(EVENT_WATCH_PLAYER, 24s, 48s);
+            events.ScheduleEvent(EVENT_WATCH_PLAYER, 12s, 24s);
             events.ScheduleEvent(EVENT_CHARGE_PLAYER, 30s, 40s);
             events.ScheduleEvent(EVENT_CLEAVE, 1s);
             me->SetHomePosition(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
@@ -441,7 +441,7 @@ public:
                             Talk(SAY_WATCH, player);
                             _chargeTarget = std::make_pair(player->GetGUID(), 0.f);
                         }
-                        events.ScheduleEvent(EVENT_WATCH_PLAYER, 24s, 48s);
+                        events.ScheduleEvent(EVENT_WATCH_PLAYER, 12s, 24s);
                         break;
                     case EVENT_CHARGE_PLAYER:
                         if (Unit* target = SelectTarget(SelectTargetMethod::MinDistance, 0, [this](Unit const* target)
