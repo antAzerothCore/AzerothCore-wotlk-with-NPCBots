@@ -7405,11 +7405,6 @@ void bot_ai::ApplyBotThreatMods(SpellInfo const* spellInfo, float& threat) const
 {
     //ALL threat mods
     ApplyClassThreatMods(spellInfo, threat);
-
-    if (IsTank() || IsOffTank())
-        threat *= 1.25f;
-    else
-        threat = 0.75f;
 }
 void bot_ai::ApplyBotEffectValueMultiplierMods(SpellInfo const* spellInfo, SpellEffIndex effIndex, float& multiplier) const
 {
@@ -19543,6 +19538,94 @@ bool bot_ai::IsFlagCarrier(Unit const* unit, BattlegroundTypeId bgTypeId)
 #ifdef _MSC_VER
 # pragma warning(pop)
 #endif
+
+bool bot_ai::EquipOwnerItem(uint8 bagID, uint8 slotID, bool alt) {
+    if (!master)
+        return false;
+
+    Item* item = master->GetItemByPos(bagID, slotID);
+
+    if (!item)
+        return false;
+
+    uint8 botSlot;
+    uint8 slot = item->GetTemplate()->InventoryType;
+
+    switch (slot) {
+        case INVTYPE_HEAD:
+            botSlot = BOT_SLOT_HEAD;
+            break;
+        case INVTYPE_NECK:
+            botSlot = BOT_SLOT_NECK;
+            break;
+        case INVTYPE_SHOULDERS:
+            botSlot = BOT_SLOT_SHOULDERS;
+            break;
+        case INVTYPE_BODY:
+            botSlot = BOT_SLOT_BODY;
+            break;
+        case INVTYPE_CHEST:
+        case INVTYPE_ROBE:
+            botSlot = BOT_SLOT_CHEST;
+            break;
+        case INVTYPE_WAIST:
+            botSlot = BOT_SLOT_WAIST;
+            break;
+        case INVTYPE_LEGS:
+            botSlot = BOT_SLOT_LEGS;
+            break;
+        case INVTYPE_FEET:
+            botSlot = BOT_SLOT_FEET;
+            break;
+        case INVTYPE_WRISTS:
+            botSlot = BOT_SLOT_WRIST;
+            break;
+        case INVTYPE_HANDS:
+            botSlot = BOT_SLOT_HANDS;
+            break;
+        case INVTYPE_FINGER:
+            botSlot = alt ? BOT_SLOT_FINGER2 : BOT_SLOT_FINGER1;
+            break;
+        case INVTYPE_TRINKET:
+            botSlot = alt ? BOT_SLOT_TRINKET2 : BOT_SLOT_TRINKET1;
+            break;
+        case INVTYPE_CLOAK:
+            botSlot = BOT_SLOT_BACK;
+            break;
+        case INVTYPE_2HWEAPON:
+        case INVTYPE_WEAPONMAINHAND:
+            botSlot = BOT_SLOT_MAINHAND;
+            break;
+        case INVTYPE_WEAPON:
+            botSlot = alt ? BOT_SLOT_OFFHAND : BOT_SLOT_MAINHAND;
+            break;
+        case INVTYPE_WEAPONOFFHAND:
+        case INVTYPE_SHIELD:
+        case INVTYPE_HOLDABLE:
+            botSlot = BOT_SLOT_OFFHAND;
+            break;
+        case INVTYPE_RANGED:
+        case INVTYPE_THROWN:
+        case INVTYPE_RANGEDRIGHT:
+        case INVTYPE_RELIC:
+            botSlot = BOT_SLOT_RANGED;
+            break;
+        default:
+            return false;
+    }
+
+    if (!_canEquip(item->GetTemplate(), botSlot, true, item))
+        return false;
+
+    bool equip = _equip(botSlot, item, master->GetGUID());
+
+    if (equip) {
+        _unsavedChanges = true;
+        UpdateVisuals();
+    }
+
+    return equip;
+}
 
 void bot_ai::LoadFromOwnerDB() {
     if (master != NULL)

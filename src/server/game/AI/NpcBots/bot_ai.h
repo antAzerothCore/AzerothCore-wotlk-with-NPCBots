@@ -343,6 +343,7 @@ class bot_ai : public CreatureAI
         void ResetContestedPvP();
         void UpdateContestedPvP();
 
+        bool EquipOwnerItem(uint8 bagID, uint8 slotID, bool alt = false);
         void LoadFromOwnerDB();
         void SaveToOwnerDB();
         void UpdateVisuals();
