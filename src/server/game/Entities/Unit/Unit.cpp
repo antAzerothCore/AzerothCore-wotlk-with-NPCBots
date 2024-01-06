@@ -307,6 +307,9 @@ Unit::Unit(bool isWorldObject) : WorldObject(isWorldObject),
         m_createStats[i] = 0.0f;
 
     m_attacking = nullptr;
+    //npcbot_plus
+    m_attackingRanged = nullptr;
+    //end npcbot_plus
     m_modMeleeHitChance = 0.0f;
     m_modRangedHitChance = 0.0f;
     m_modSpellHitChance = 0.0f;
@@ -4162,6 +4165,10 @@ void Unit::_UpdateAutoRepeatSpell()
         Spell* spell = new Spell(this, spellProto, TRIGGERED_FULL_MASK);
         spell->prepare(&(m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets));
 
+        //npcbot_plus
+        m_attackingRanged = m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_targets.GetUnitTarget();
+        //end npcbot_plus
+
         // Reset attack
         resetAttackTimer(RANGED_ATTACK);
     }
@@ -4274,8 +4281,15 @@ void Unit::InterruptSpell(CurrentSpellTypes spellType, bool withDelayed, bool wi
 
         // send autorepeat cancel message for autorepeat spells
         if (spellType == CURRENT_AUTOREPEAT_SPELL)
+        {
             if (GetTypeId() == TYPEID_PLAYER)
                 ToPlayer()->SendAutoRepeatCancel(this);
+            
+            //npcbot_plus
+            if (m_attackingRanged)
+                m_attackingRanged = nullptr;
+            //end npcbot_plus
+        }
 
         //npcbot
         if (IsNPCBot())
@@ -11005,6 +11019,9 @@ bool Unit::AttackStop()
 
     m_attacking->_removeAttacker(this);
     m_attacking = nullptr;
+    //npcbot_plus
+    m_attackingRanged = nullptr;
+    //end npcbot_plus
 
     // Clear our target
     SetTarget(ObjectGuid::Empty);
