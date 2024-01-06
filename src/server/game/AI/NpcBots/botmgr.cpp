@@ -1663,9 +1663,11 @@ bool BotMgr::RemoveBotFromGroup(Creature* bot)
 
     gr->RemoveMember(bot->GetGUID());
 
+    //npcbot_plus
     //if removed from group while in instance / bg then remove from world immediately
-    if (bot->IsInWorld() && RestrictBots(bot, true))
-        TeleportBot(bot, bot->GetMap(), bot);
+    //if (bot->IsInWorld() && RestrictBots(bot, true))
+        //TeleportBot(bot, bot->GetMap(), bot);
+    //end npcbot_plus
 
     return true;
 }
