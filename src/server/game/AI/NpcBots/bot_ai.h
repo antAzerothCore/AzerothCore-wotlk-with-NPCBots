@@ -346,6 +346,12 @@ class bot_ai : public CreatureAI
 
         static bool IsFlagCarrier(Unit const* unit, BattlegroundTypeId bgTypeId = BATTLEGROUND_TYPE_NONE);
 
+        //npcbot_plus
+        void LoadFromOwnerDB();
+        void SaveToOwnerDB();
+        void UpdateVisuals();
+        //end npcbot_plus
+
     protected:
         explicit bot_ai(Creature* creature);
 
@@ -722,6 +728,9 @@ class bot_ai : public CreatureAI
 
         //save flags
         bool _saveDisabledSpells;
+        //npcbot_plus
+        bool _unsavedChanges = false;
+        //end npcbot_plus
 
         TeleportHomeEvent* teleHomeEvent;
         TeleportFinishEvent* teleFinishEvent;

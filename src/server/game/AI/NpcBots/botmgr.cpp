@@ -1436,6 +1436,11 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
     }
 
     Creature* bot = itr->second;
+
+    //npcbot_plus
+    bot->GetBotAI()->SaveToOwnerDB();
+    //end npcbot_plus
+
     CleanupsBeforeBotDelete(guid, removetype);
 
     ////remove control bar
@@ -1458,17 +1463,21 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
         case BOT_REMOVE_UNBIND:  resetType = BOTAI_RESET_UNBIND;    break;
         default:                 resetType = BOTAI_RESET_LOGOUT;  break;
     }
-    bot->GetBotAI()->ResetBotAI(resetType);
 
-    bot->SetFaction(bot->GetCreatureTemplate()->faction);
-    bot->SetLevel(bot->GetCreatureTemplate()->minlevel);
-
-    if (removetype == BOT_REMOVE_DISMISS)
-    {
+    //npcbot_plus
+    if (removetype == BOT_REMOVE_LOGOUT || removetype == BOT_REMOVE_DISMISS) {
         BotDataMgr::ResetNpcBotTransmogData(bot->GetEntry(), false);
-        uint32 newOwner = 0;
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
+        
+        // Remove from DB
+        const_cast<Creature*>(bot)->CombatStop();
+        bot->GetBotAI()->canUpdate = false;
+        const_cast<Creature*>(bot)->DeleteFromDB();
+        const_cast<Creature*>(bot)->AddObjectToRemoveList();
+
+        ObjectGuid ownerGuid = bot->GetBotOwner()->GetGUID();
+        BotDataMgr::UpdateNpcBotData(ownerGuid.GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
     }
+    //end npcbot_plus
 }
 
 void BotMgr::UnbindBot(ObjectGuid guid)
@@ -1587,7 +1596,9 @@ BotAddResult BotMgr::AddBot(Creature* bot)
             AddBotToGroup(bot);
 
         uint32 newOwner = _owner->GetGUID().GetCounter();
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
+        //npcbot_plus
+        BotDataMgr::UpdateNpcBotData(newOwner, bot->GetEntry(), NPCBOT_UPDATE_OWNER, &newOwner);
+        //end npcbot_plus
     }
 
     return BOT_ADD_SUCCESS;

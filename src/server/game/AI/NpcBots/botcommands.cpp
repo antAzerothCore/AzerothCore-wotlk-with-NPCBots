@@ -2532,7 +2532,9 @@ public:
             return false;
         }
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_FACTION, &factionId);
+        //npcbot_plus
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_FACTION, &factionId);
+        //end npcbot_plus
         bot->GetBotAI()->ReInitFaction();
 
         handler->PSendSysMessage("%s's faction set to %u", bot->GetName().c_str(), factionId);
@@ -2586,7 +2588,9 @@ public:
             return false;
         }
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
+        //npcbot_plus
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
+        //end npcbot_plus
         bot->GetBotAI()->ReinitOwner();
         //bot->GetBotAI()->Reset();
 
@@ -2694,7 +2698,10 @@ public:
             if (!_botExtras || _botExtras->bclass != botclass)
                 continue;
 
-            if (unspawned && *unspawned && BotDataMgr::SelectNpcBotData(id))
+            //npcbot_plus
+            Player* chr = handler->GetSession()->GetPlayer();
+            if (unspawned && *unspawned && BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), id))
+            //end npcbot_plus
                 continue;
 
             uint8 race = _botExtras->race;
@@ -2791,7 +2798,8 @@ public:
         }
 
         Player const* botowner = bot->GetBotOwner()->ToPlayer();
-
+        //npcbot_plus
+        /* Do not return the gear - we leave it with the NPCBots
         ObjectGuid receiver =
             botowner ? botowner->GetGUID() :
             bot->GetBotAI()->GetBotOwnerGuid() != 0 ? ObjectGuid(HighGuid::Player, 0, bot->GetBotAI()->GetBotOwnerGuid()) :
@@ -2802,6 +2810,7 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+        //end npcbot_plus */
 
         if (botowner)
             botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
@@ -2812,7 +2821,9 @@ public:
         bot->DeleteFromDB();
         bot->AddObjectToRemoveList();
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        //npcbot_plus
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        //end npcbot_plus
 
         handler->PSendSysMessage("Npcbot %s successfully deleted", bot->GetName().c_str());
         return true;
@@ -2846,6 +2857,8 @@ public:
         Player* chr = !handler->IsConsole() ? handler->GetSession()->GetPlayer() : nullptr;
         Player const* botowner = bot->GetBotOwner()->ToPlayer();
 
+        //npcbot_plus
+        /* Do not return the gear - we leave it with the NPCBots
         if (bot->GetBotAI()->HasRealEquipment())
         {
             ObjectGuid receiver =
@@ -2865,6 +2878,7 @@ public:
                 return false;
             }
         }
+        //end npcbot_plus */
 
         if (botowner)
             botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
@@ -2875,7 +2889,9 @@ public:
         const_cast<Creature*>(bot)->DeleteFromDB();
         const_cast<Creature*>(bot)->AddObjectToRemoveList();
 
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        //npcbot_plus
+        BotDataMgr::UpdateNpcBotData(chr->GetGUID().GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        //end npcbot_plus
 
         handler->PSendSysMessage("Npcbot %s successfully deleted", bot->GetName().c_str());
         return true;
@@ -2884,8 +2900,13 @@ public:
     static bool HandleNpcBotDeleteFreeCommand(ChatHandler* handler)
     {
         uint32 count = 0;
+        //npcbot_plus
+        Player* chr = handler->GetSession()->GetPlayer();
+        //end npcbot_plus
         for (uint32 creature_id : BotDataMgr::GetExistingNPCBotIds())
-            if (NpcBotData const* botData = BotDataMgr::SelectNpcBotData(creature_id))
+            //npcbot_plus
+            if (NpcBotData const* botData = BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), creature_id))
+            //end npcbot_plus
                 if (botData->owner == 0)
                     if (HandleNpcBotDeleteByIdCommand(handler, creature_id))
                         ++count;
@@ -2929,7 +2950,9 @@ public:
             return false;
         }
 
-        if (!BotDataMgr::SelectNpcBotData(id))
+        //npcbot_plus
+        if (!BotDataMgr::SelectNpcBotData(player->GetGUID().GetCounter(), id))
+        //end npcbot_plus
         {
             handler->PSendSysMessage("NpcBot %u is not spawned!", id);
             handler->SetSentErrorMessage(true);
@@ -3128,7 +3151,10 @@ public:
             return false;
         }
 
-        if (BotDataMgr::SelectNpcBotData(id))
+        //npcbot_plus
+        Player* chr = handler->GetSession()->GetPlayer();
+        if (BotDataMgr::SelectNpcBotData(chr->GetGUID().GetCounter(), id))
+        //end npcbot_plus
         {
             handler->PSendSysMessage("Npcbot %u already exists in `characters_npcbot` table!", id);
             handler->SendSysMessage("If you want to move this bot to a new location use '.npcbot move' command");
@@ -3136,6 +3162,8 @@ public:
             return false;
         }
 
+        //npcbot_plus
+        /* Do not check if the NPCBot is spawned - allow multiple players to spawn the same bots
         WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_BY_ID);
         //"SELECT guid FROM creature WHERE id1 = ? OR id2 = ? OR id3 = ?", CONNECTION_SYNCH
         //stmt->setUInt32(0, id);
@@ -3149,6 +3177,7 @@ public:
         }
 
         Player* chr = handler->GetSession()->GetPlayer();
+        //end npcbot_plus */
 
         if (/*Transport* trans = */chr->GetTransport())
         {
@@ -3163,12 +3192,15 @@ public:
         //float o = chr->GetOrientation();
         Map* map = chr->GetMap();
 
+        //npcbot_plus
+        /* Allow NPCBots to be spawned in instances
         if (map->Instanceable())
         {
             handler->SendSysMessage("Cannot spawn bots in instances!");
             handler->SetSentErrorMessage(true);
             return false;
         }
+        //end npcbot_plus */
 
         Creature* creature = new Creature();
         if (!creature->Create(map->GenerateLowGuid<HighGuid::Unit>(), map, chr->GetPhaseMaskForSpawn(), id, 0, chr->GetPositionX(), chr->GetPositionY(), chr->GetPositionZ(), chr->GetOrientation()))
@@ -3189,7 +3221,9 @@ public:
         }
 
         uint8 bot_spec = bot_ai::SelectSpecForClass(_botExtras->bclass);
-        BotDataMgr::AddNpcBotData(id, bot_ai::DefaultRolesForClass(_botExtras->bclass, bot_spec), bot_spec, creature->GetCreatureTemplate()->faction);
+        //npcbot_plus
+        BotDataMgr::AddNpcBotData(chr->GetGUID().GetCounter(), id, bot_ai::DefaultRolesForClass(_botExtras->bclass, bot_spec), bot_spec, creature->GetCreatureTemplate()->faction);
+        //end npcbot_plus
 
         creature->SaveToDB(map->GetId(), (1 << map->GetSpawnMode()), chr->GetPhaseMaskForSpawn());
 
@@ -3203,6 +3237,13 @@ public:
         }
 
         sObjectMgr->AddCreatureToGrid(db_guid, sObjectMgr->GetCreatureData(db_guid));
+
+        //npcbot_plus
+        // Set the bot owner to the player who spawned it
+        bot_ai* bot = creature->GetBotAI();
+        if (bot)
+            bot->SetBotOwner(chr);
+        //end npcbot_plus
 
         handler->SendSysMessage("NpcBot successfully spawned");
         return true;
@@ -3248,9 +3289,13 @@ public:
         //using std::remove_if with sets requires c++20
         std::vector<NpcBotRegistry::value_type> free_bots;
         free_bots.reserve(all_bots.size());
-        for (Creature const* bot : all_bots)
-            if (BotDataMgr::SelectNpcBotData(bot->GetEntry())->owner == 0)
+        //npcbot_plus
+        for (Creature const* bot : all_bots) {
+            NpcBotData const* botData = BotDataMgr::SelectNpcBotData(0, bot->GetEntry());
+            if (botData && botData->owner == 0)
                 free_bots.push_back(bot);
+        }
+        //end npcbot_plus
         std::stringstream ss;
         if (free_bots.empty())
             ss << "No free bots found!";
@@ -3925,8 +3970,10 @@ public:
         if (!names || names->empty())
         {
             Creature const* bot = handler->getSelectedCreature();
+            //npcbot_plus
             if (bot && bot->IsNPCBot() && !bot->IsTempBot() && !mgr->GetBot(bot->GetGUID()) && bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_UNBIND) &&
-                BotDataMgr::SelectNpcBotData(bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+                BotDataMgr::SelectNpcBotData(owner->GetGUID().GetCounter(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+            //end npcbot_plus
             {
                 if (mgr->RebindBot(const_cast<Creature*>(bot)) != BOT_ADD_SUCCESS)
                 {
@@ -3952,8 +3999,10 @@ public:
                 bot_ids.push_back(kv.first.GetEntry());
 
             Creature const* bot = BotDataMgr::FindBot(name, owner->GetSession()->GetSessionDbLocaleIndex(), &bot_ids);
+            //npcbot_plus
             if (bot && bot->IsNPCBot() && !bot->IsTempBot() && !mgr->GetBot(bot->GetGUID()) && bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_UNBIND) &&
-                BotDataMgr::SelectNpcBotData(bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+                BotDataMgr::SelectNpcBotData(owner->GetGUID().GetCounter(), bot->GetEntry())->owner == owner->GetGUID().GetCounter())
+            //end npcbot_plus
             {
                 if (mgr->RebindBot(const_cast<Creature*>(bot)) != BOT_ADD_SUCCESS)
                 {
@@ -4158,7 +4207,9 @@ public:
         }
 
         ObjectGuid::LowType guidlow = owner->GetGUID().GetCounter();
-        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
+        //npcbot_plus
+        BotDataMgr::UpdateNpcBotData(guidlow, bot->GetEntry(), NPCBOT_UPDATE_OWNER, &guidlow);
+        //end npcbot_plus
         bot->GetBotAI()->ReinitOwner();
 
         if (owner->GetBotMgr()->AddBot(bot) == BOT_ADD_SUCCESS)

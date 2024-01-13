@@ -1,0 +1,29 @@
+CREATE TABLE `individualnpcbot` (
+	`entry` INT(10) UNSIGNED NOT NULL COMMENT 'creature_template.entry',
+	`owner` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'characters.guid (lowguid)',
+	`roles` INT(10) UNSIGNED NOT NULL COMMENT 'bitmask: tank(1),dps(2),heal(4),ranged(8)',
+	`spec` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1',
+	`equipMhEx` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipOhEx` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipRhEx` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipHead` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipShoulders` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipChest` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipWaist` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipLegs` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipFeet` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipWrist` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipHands` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipBack` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipBody` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipFinger1` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipFinger2` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipTrinket1` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipTrinket2` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`equipNeck` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+	`spells_disabled` LONGTEXT NULL DEFAULT NULL COLLATE 'utf8mb3_general_ci',
+	PRIMARY KEY (`entry`, `owner`) USING BTREE
+)
+COLLATE='utf8mb3_general_ci'
+ENGINE=InnoDB
+;

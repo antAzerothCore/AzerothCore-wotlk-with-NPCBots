@@ -164,9 +164,11 @@ class BotDataMgr
         static void LoadNpcBotGroupData();
         static void LoadNpcBotGearStorage();
 
-        static void AddNpcBotData(uint32 entry, uint32 roles, uint8 spec, uint32 faction);
-        static NpcBotData const* SelectNpcBotData(uint32 entry);
-        static void UpdateNpcBotData(uint32 entry, NpcBotDataUpdateType updateType, void* data = nullptr);
+        //npcbot_plus
+        static void AddNpcBotData(uint32 owner, uint32 entry, uint32 roles, uint8 spec, uint32 faction);
+        static NpcBotData const* SelectNpcBotData(uint32 owner, uint32 entry);
+        static void UpdateNpcBotData(uint32 owner, uint32 entry, NpcBotDataUpdateType updateType, void* data = nullptr);
+        //end npcbot_plus
         static void UpdateNpcBotDataAll(uint32 playerGuid, NpcBotDataUpdateType updateType, void* data = nullptr);
         static void SaveNpcBotStats(NpcBotStats const* stats);
 
