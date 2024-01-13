@@ -4230,6 +4230,10 @@ std::tuple<Unit*, Unit*> bot_ai::_getTargets(bool byspell, bool ranged, bool &re
     }
 
     Unit* u = master->GetVictim();
+    //npcbot_plus
+    if (!u)
+        u = master->GetVictimRanged();
+    //end npcbot_plus
 //Disabled due to a bug:
 //when spell cast is finished target is immideately put in combat which makes bots attack immediately
 //caster must be put in combat at spell launch
