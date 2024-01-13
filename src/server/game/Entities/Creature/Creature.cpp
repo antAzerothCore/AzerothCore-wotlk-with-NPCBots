@@ -1913,7 +1913,10 @@ void Creature::DeleteFromDB()
         return;
     }
 
-    GetMap()->RemoveCreatureRespawnTime(m_spawnId);
+    //npcbot_plus
+    if (!IsNPCBot())
+        GetMap()->RemoveCreatureRespawnTime(m_spawnId);
+    //end npcbot_plus
     sObjectMgr->DeleteCreatureData(m_spawnId);
 
     WorldDatabaseTransaction trans = WorldDatabase.BeginTransaction();
