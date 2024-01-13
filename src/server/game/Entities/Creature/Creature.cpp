@@ -3985,7 +3985,9 @@ bool Creature::LoadBotCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool
     }
 
     m_spawnId = spawnId;
-    ASSERT(map->GetInstanceId() == 0);
+    //npcbot_plus
+    //ASSERT(map->GetInstanceId() == 0);
+    //end npcbot_plus
 
     m_creatureData = data;
     m_wanderDistance = data ? data->wander_distance : 0.f;
