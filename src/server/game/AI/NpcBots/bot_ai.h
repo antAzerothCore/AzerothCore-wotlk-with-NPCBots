@@ -347,6 +347,7 @@ class bot_ai : public CreatureAI
         static bool IsFlagCarrier(Unit const* unit, BattlegroundTypeId bgTypeId = BATTLEGROUND_TYPE_NONE);
 
         //npcbot_plus
+        bool EquipOwnerItem(uint8 bagID, uint8 slotID, bool alt = false);
         void LoadFromOwnerDB();
         void SaveToOwnerDB();
         void UpdateVisuals();
