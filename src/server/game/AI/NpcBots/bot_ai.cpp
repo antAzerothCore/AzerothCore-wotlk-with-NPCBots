@@ -42,6 +42,11 @@
 #include "TemporarySummon.h"
 #include "Transport.h"
 #include "World.h"
+
+//npcbot_plus
+#include "ScriptMgr.h"
+//end npcbot_plus
+
 /*
 NpcBot System by Trickerer (https://github.com/trickerer/Trinity-Bots; onlysuffering@gmail.com)
 Version 5.2.77a
@@ -11370,6 +11375,10 @@ void bot_ai::_autoLootCreatureGold(Creature* creature) const
     Group const* gr = master->GetGroup();
     if (!gr)
     {
+        //npcbot_plus
+        sScriptMgr->OnBeforeLootMoney(master, loot);
+        //end npcbot_plus
+
         master->ModifyMoney(loot->gold);
         master->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, loot->gold);
 
@@ -11387,6 +11396,10 @@ void bot_ai::_autoLootCreatureGold(Creature* creature) const
             if (p && p->IsAtGroupRewardDistance(creature))
                 players.push_back(p);
         }
+
+        //npcbot_plus
+        sScriptMgr->OnBeforeLootMoney(master, loot);
+        //end npcbot_plus
 
         uint32 goldPerPlayer = uint32(loot->gold / uint32(players.size()));
 
