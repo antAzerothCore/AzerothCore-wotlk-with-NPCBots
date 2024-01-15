@@ -12373,35 +12373,41 @@ bool bot_ai::_equip(uint8 slot, Item* newItem, ObjectGuid receiver)
             return false;
     }
 
-    if (!_unequip(slot, receiver))
+    //npcbot_plus
+    if (receiver && receiver.GetCounter() != 0) 
     {
-        //BotWhisper("You have no space for my current item", master);
-        return false;
-    }
-
-    if (receiver && (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != newItemId))
-    {
-        ASSERT(receiver == master->GetGUID());
-
-        //cheating
-        if (newItem->GetOwnerGUID() != master->GetGUID() || !master->HasItemCount(newItemId, 1))
+        if (!_unequip(slot, receiver))
         {
-            //std::ostringstream msg;
-            //msg << "Cannot find ";
-            //_AddItemLink(master, newItem, msg, false);
-            //msg << " (id: " << uint32(newItemId) << ")!";
-            //BotWhisper(msg.str().c_str());
-
-            LOG_ERROR("entities.player",
-                "minion_ai::_equip(): player {} ({}) is trying to make bot {} (id: {}) equip item: {} (id: {}, {}) but either does not have this item or does not own it",
-                master->GetName().c_str(), master->GetGUID().ToString().c_str(), me->GetName().c_str(), me->GetEntry(), proto->Name1.c_str(), proto->ItemId, newItem->GetGUID().ToString().c_str());
+            //BotWhisper("You have no space for my current item", master);
             return false;
         }
 
-        master->MoveItemFromInventory(newItem->GetBagSlot(), newItem->GetSlot(), true);
-        //Item is removed from inventory table in _updateEquips(slot, newItem);
-        //newItem->SetOwnerGUID(ObjectGuid::Empty); //needed to prevent some logs to be sent to master, restored at unequip
+        if (receiver && (slot > BOT_SLOT_RANGED || einfo->ItemEntry[slot] != newItemId))
+        {
+            ASSERT(receiver == master->GetGUID());
+
+                //cheating
+                if (newItem->GetOwnerGUID() != master->GetGUID() || !master->HasItemCount(newItemId, 1))
+                {
+                    //std::ostringstream msg;
+                    //msg << "Cannot find ";
+                    //_AddItemLink(master, newItem, msg, false);
+                    //msg << " (id: " << uint32(newItemId) << ")!";
+                    //BotWhisper(msg.str().c_str());
+
+                    LOG_ERROR("entities.player",
+                        "minion_ai::_equip(): player {} ({}) is trying to make bot {} (id: {}) equip item: {} (id: {}, {}) but either does not have this item or does not own it",
+                        master->GetName().c_str(), master->GetGUID().ToString().c_str(), me->GetName().c_str(), me->GetEntry(), proto->Name1.c_str(), proto->ItemId, newItem->GetGUID().ToString().c_str());
+                    return false;
+                }
+
+                if (master->HasItemCount(newItemId, 1))
+                    master->MoveItemFromInventory(newItem->GetBagSlot(), newItem->GetSlot(), true);
+                //Item is removed from inventory table in _updateEquips(slot, newItem);
+                //newItem->SetOwnerGUID(ObjectGuid::Empty); //needed to prevent some logs to be sent to master, restored at unequip
+        }
     }
+    //end npcbot_plus
 
     if (slot <= BOT_SLOT_RANGED)
     {
