@@ -6490,6 +6490,21 @@ Unit* bot_ai::FindDistantTauntTarget(float maxdist, bool ally) const
         return nullptr;
 
     Unit* unit = unitList.size() == 1 ? *unitList.begin() : Acore::Containers::SelectRandomContainerElement(unitList);
+
+    //npcbot_plus
+    Unit* victim = unit->GetVictim();
+
+    // Bots should not taunt off a tank when off-tanking
+    bool victimIsTank = IsTank(victim);
+    if (victimIsTank && IsOffTank())
+        return nullptr;
+
+    // Bots should not taunt off an off-tank when tanking
+    bool victimIsOffTank = victimIsTank && !IsOffTank();
+    if (victimIsOffTank && IsPointedOffTankingTarget(unit))
+        return nullptr;
+    //end npcbot_plus
+
     return ally ? unit->GetVictim() : unit;
 }
 //Finds target for Warlock's Mana Drain
@@ -7381,6 +7396,20 @@ bool bot_ai::Wait()
         waitTimer = __rand;
 
     waitTimer += BotMgr::GetBaseUpdateDelay();
+
+    //npcbot_plus
+    // Slow down if off-tanking
+    Unit* mytar = me->GetVictim();
+    if (mytar) {
+        bool isTanking = IsTank() && !IsPointedTankingTarget(mytar);
+        bool isOfftanking = IsOffTank() && !IsPointedOffTankingTarget(mytar);
+        if (isTanking || isOfftanking) {
+            Unit *victim = mytar->GetVictim();
+            if (victim != me && IsTank(victim)) 
+                waitTimer += 10000;
+        }
+    }
+    //end npcbot_plus
 
     return false;
 }
