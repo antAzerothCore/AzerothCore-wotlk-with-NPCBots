@@ -77,6 +77,10 @@
 #include "botmgr.h"
 //end npcbot
 
+//npcbot_plus
+#include "bot_ai.h"
+//end npcbot_plus 
+
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
     2.5f,                  // MOVE_WALK
@@ -15572,6 +15576,21 @@ bool Unit::CanHaveThreatList() const
 
 float Unit::ApplyTotalThreatModifier(float fThreat, SpellSchoolMask schoolMask)
 {
+    //npcbot_plus
+    Creature* creature = ToCreature();
+    
+    if (creature && creature->IsNPCBotOrPet())
+    {
+        float THREAT_MODIFIER_DPS_BOT = 0.25f;
+        float THREAT_MODIFIER_TANK_BOT = 1.0f;
+
+        if (creature->GetBotAI() && (creature->GetBotAI()->IsTank() || creature->GetBotAI()->IsOffTank()))
+            fThreat *= THREAT_MODIFIER_DPS_BOT;
+        else
+            fThreat *= THREAT_MODIFIER_TANK_BOT;
+    }
+    //end npcbot_plus
+
     if (!HasAuraType(SPELL_AURA_MOD_THREAT) || fThreat < 0)
         return fThreat;
 
