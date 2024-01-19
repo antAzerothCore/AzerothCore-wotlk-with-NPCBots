@@ -3358,6 +3358,13 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
 
     int32 skillDiff = attackerWeaponSkill - int32(victim->GetMaxSkillValueForLevel(this));
 
+    //fullscale
+    // Cap skillDiff to 0 (0 levels) - prevents gray mobs from having increased missing chance.
+    // Tweaked for open world scaling
+    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && skillDiff < 0)
+        skillDiff = 0;
+    //end fullscale
+
     uint32 roll = urand (0, 10000);
 
     uint32 missChance = uint32(MeleeSpellMissChance(victim, attType, skillDiff, spellInfo->Id) * 100.0f);
@@ -3533,6 +3540,13 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     if (GetTypeId() == TYPEID_UNIT && ToCreature()->IsTrigger())
         thisLevel = std::max<int32>(thisLevel, spellInfo->SpellLevel);
     int32 levelDiff = int32(victim->getLevelForTarget(this)) - thisLevel;
+
+    //fullscale
+    // Cap levelDiff to 0 - prevents gray mobs from having increased missing chance.
+    // Tweaked for open world scaling
+    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && levelDiff > 0)
+        levelDiff = 0;
+    //end fullscale
 
     int32 MISS_CHANCE_MULTIPLIER;
     if (sWorld->getBoolConfig(CONFIG_MISS_CHANCE_MULTIPLIER_ONLY_FOR_PLAYERS) && GetTypeId() != TYPEID_PLAYER) // keep it as it was originally (7 and 11)

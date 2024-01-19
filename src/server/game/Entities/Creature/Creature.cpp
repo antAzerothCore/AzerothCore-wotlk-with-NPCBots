@@ -3493,6 +3493,10 @@ float Creature::GetAggroRange(Unit const* target) const
     // The maximum Aggro Radius is capped at 45 yards (25 level difference)
     if (levelDiff < -25)
         levelDiff = -25;
+    //fullscale
+    else if (levelDiff > 3)
+        levelDiff = 3;
+    //end fullscale
 
     // The base aggro radius for mob of same level
     auto aggroRadius = GetDetectionRange();
@@ -3712,6 +3716,10 @@ float Creature::GetAttackDistance(Unit const* player) const
     // "The maximum Aggro Radius has a cap of 25 levels under. Example: A level 30 char has the same Aggro Radius of a level 5 char on a level 60 mob."
     if (levelDiff < -25)
         levelDiff = -25;
+    //fullscale
+    else if (levelDiff > 3)
+        levelDiff = 3;
+    //end fullscale
 
     // "The aggro radius of a mob having the same level as the player is roughly 20 yards"
     float retDistance = 20.0f;
