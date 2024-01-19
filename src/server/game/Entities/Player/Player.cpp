@@ -12740,14 +12740,16 @@ uint32 Player::GetResurrectionSpellId()
 // Used in triggers for check "Only to targets that grant experience or honor" req
 bool Player::isHonorOrXPTarget(Unit* victim) const
 {
-    uint8 v_level = victim->GetLevel();
+    //fullscale
+    /*uint8 v_level = victim->GetLevel();
     uint8 k_grey  = Acore::XP::GetGrayLevel(GetLevel());
 
     // Victim level less gray level
     if (v_level <= k_grey)
     {
         return false;
-    }
+    }*/
+    //end fullscale
 
     if (victim->GetTypeId() == TYPEID_UNIT)
     {
