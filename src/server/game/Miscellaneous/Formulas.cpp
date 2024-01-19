@@ -22,6 +22,10 @@
 #include "Player.h"
 #include "World.h"
 
+//fullscale
+#include "ScriptMgr.h"
+//end fullscale
+
 uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels content)
 {
     uint32 baseGain;
@@ -64,7 +68,9 @@ uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels conten
             baseGain = 0;
     }
 
-    //sScriptMgr->OnBaseGainCalculation(baseGain, pl_level, mob_level, content); // pussywizard: optimization
+    //fullscale
+    sScriptMgr->OnBaseGainCalculation(baseGain, pl_level, mob_level, content); // pussywizard: optimization
+    //end fullscale
     return baseGain;
 }
 

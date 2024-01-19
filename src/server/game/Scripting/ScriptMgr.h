@@ -456,6 +456,9 @@ public: /* PlayerScript */
     void OnAfterCreatureLoot(Player* player);
     void OnAfterCreatureLootMoney(Player* player);
     bool OnCanPlayerFlyInZone(Player* player, uint32 mapId, uint32 zoneId, SpellInfo const* bySpell);
+    //fullscale
+    void ModifyQuestGiverStatus(Player* player, QuestGiverStatus& result, uint32 questId);
+    //end fullscale
 
     // Anti cheat
     void AnticheatSetCanFlybyServer(Player* player, bool apply);
