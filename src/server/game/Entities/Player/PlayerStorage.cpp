@@ -5645,7 +5645,9 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
 
 bool Player::isAllowedToLoot(Creature const* creature)
 {
-    if (!creature->isDead() || !creature->IsDamageEnoughForLootingAndReward())
+    //fullscale
+    if (!creature->isDead() /*|| !creature->IsDamageEnoughForLootingAndReward()*/)
+    //end fullscale
         return false;
 
     if (HasPendingBind())
