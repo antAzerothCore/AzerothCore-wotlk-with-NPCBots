@@ -19132,12 +19132,15 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     //end npcbot
 
     bool isRewardAllowed = true;
+    //fullscale
+    /* Disabled damage requirement for loot reward
     if (creature)
     {
         isRewardAllowed = creature->IsDamageEnoughForLootingAndReward();
         if (!isRewardAllowed)
             creature->SetLootRecipient(nullptr);
     }
+    //end fullscale */
 
     // pussywizard: remade this if section (player is on the same map
     if (isRewardAllowed && creature)
