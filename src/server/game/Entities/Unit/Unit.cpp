@@ -77,6 +77,10 @@
 #include "botmgr.h"
 //end npcbot
 
+//fullscale
+#include "ScriptMgr.h"
+//end fullscale
+
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
     2.5f,                  // MOVE_WALK
@@ -15559,6 +15563,15 @@ bool Unit::CanHaveThreatList() const
 
 float Unit::ApplyTotalThreatModifier(float fThreat, SpellSchoolMask schoolMask)
 {
+    //fullscale
+    Creature* creature = ToCreature();
+
+    if (creature && creature->IsPet()) {
+        float THREAT_MODIFIER_PET = 1.5f;
+        fThreat *= THREAT_MODIFIER_PET;
+    }
+    //end fullscale
+
     if (!HasAuraType(SPELL_AURA_MOD_THREAT) || fThreat < 0)
         return fThreat;
 
