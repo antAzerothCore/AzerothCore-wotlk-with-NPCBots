@@ -9557,8 +9557,10 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
                 else if (auraSpellInfo->Id == 71761) // Deep Freeze Immunity State (only permanent)
                 {
                     Creature* creature = victim->ToCreature();
-                    if (!creature || !creature->HasMechanicTemplateImmunity(1 << (MECHANIC_STUN - 1)))
+                    //fullscale
+                    if (!creature || !creature->HasMechanicImmunity(1 << (MECHANIC_STUN - 1)))
                         return false;
+                    //end fullscale
                 }
                 break;
             case SPELLFAMILY_WARLOCK:
@@ -15323,8 +15325,9 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     if (creature
         && !IsPet()
         && !(IsControlledByPlayer() && IsVehicle())
-        && !(creature->HasMechanicTemplateImmunity(MECHANIC_SNARE))
-        && !(creature->IsDungeonBoss()))
+        //fullscale
+        && !creature->HasMechanicImmunity(MECHANIC_SNARE))
+        //end fullscale
     {
         // 1.6% for each % under 30.
         // use min(0, health-30) so that we don't boost mobs above 30.

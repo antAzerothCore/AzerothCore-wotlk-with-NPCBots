@@ -2297,6 +2297,19 @@ bool Creature::HasMechanicTemplateImmunity(uint32 mask) const
     return !GetOwnerGUID().IsPlayer() && (GetCreatureTemplate()->MechanicImmuneMask & mask);
 }
 
+//fullscale
+bool Creature::HasMechanicImmunity(uint32 mask) const
+{
+    if (mask > MECHANIC_NONE) {
+        for (SpellImmuneList::const_iterator itr = m_spellImmune[IMMUNITY_MECHANIC].begin(); itr != m_spellImmune[IMMUNITY_MECHANIC].end(); ++itr)
+            if (itr->type == mask)
+                return true;
+    }
+
+    return false;
+}
+//end fullscale
+
 void Creature::LoadSpellTemplateImmunity()
 {
     // uint32 max used for "spell id", the immunity system will not perform SpellInfo checks against invalid spells
@@ -2325,6 +2338,25 @@ void Creature::LoadSpellTemplateImmunity()
             }
         }
     }
+
+    //fullscale
+    // unapply template immunities (in case we're updating entry)
+    for (uint32 i = MECHANIC_NONE; i <= MAX_MECHANIC; ++i)
+    {
+        ApplySpellImmune(placeholderSpellId, IMMUNITY_MECHANIC, i, false);
+    }
+    
+    if (uint32 mask = GetCreatureTemplate()->MechanicImmuneMask)
+    {
+        for (uint32 i = MECHANIC_NONE; i <= MAX_MECHANIC; ++i)
+        {
+            if (mask & (1 << i))
+            {
+                ApplySpellImmune(placeholderSpellId, IMMUNITY_MECHANIC, 1 << i, true);
+            }
+        }
+    }
+    //end fullscale
 }
 
 bool Creature::IsImmunedToSpell(SpellInfo const* spellInfo, Spell const* spell)
@@ -2337,8 +2369,10 @@ const
 
     // Xinef: this should exclude self casts...
     // Spells that don't have effectMechanics.
-    if (spellInfo->Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1 << (spellInfo->Mechanic - 1)))
+    //fullscale
+    if (spellInfo->Mechanic > MECHANIC_NONE && HasMechanicImmunity(1 << (spellInfo->Mechanic - 1)))
         return true;
+    //end fullscale
 
     // This check must be done instead of 'if (GetCreatureTemplate()->MechanicImmuneMask & (1 << (spellInfo->Mechanic - 1)))' for not break
     // the check of mechanic immunity on DB (tested) because GetCreatureTemplate()->MechanicImmuneMask and m_spellImmune[IMMUNITY_MECHANIC] don't have same data.
@@ -2358,8 +2392,10 @@ const
 bool Creature::IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index) const
 {
     // Xinef: this should exclude self casts...
-    if (spellInfo->Effects[index].Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1 << (spellInfo->Effects[index].Mechanic - 1)))
+    //fullscale
+    if (spellInfo->Effects[index].Mechanic > MECHANIC_NONE && HasMechanicImmunity(1 << (spellInfo->Effects[index].Mechanic - 1)))
         return true;
+    //end fullscale
 
     if (GetCreatureTemplate()->type == CREATURE_TYPE_MECHANICAL && spellInfo->Effects[index].Effect == SPELL_EFFECT_HEAL)
         return true;
