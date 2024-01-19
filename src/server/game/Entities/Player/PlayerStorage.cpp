@@ -5645,7 +5645,9 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
 
 bool Player::isAllowedToLoot(Creature const* creature)
 {
-    if (!creature->isDead() || !creature->IsDamageEnoughForLootingAndReward())
+    //fullscale
+    if (!creature->isDead() /*|| !creature->IsDamageEnoughForLootingAndReward()*/)
+    //end fullscale
         return false;
 
     if (HasPendingBind())
@@ -6827,7 +6829,9 @@ bool Player::Satisfy(DungeonProgressionRequirements const* ar, uint32 target_map
 
             if (questRequirement->faction == TEAM_NEUTRAL || questRequirement->faction == checkPlayer->GetTeamId(true))
             {
-                if (!checkPlayer->GetQuestRewardStatus(questRequirement->id))
+                //fullscale
+                if (!checkPlayer->GetQuestRewardStatus(questRequirement->id) && !checkPlayer->GetAccountQuestRewardStatus(questRequirement->id))
+                //end fullscale
                 {
                     missingQuests->push_back(questRequirement);
                 }

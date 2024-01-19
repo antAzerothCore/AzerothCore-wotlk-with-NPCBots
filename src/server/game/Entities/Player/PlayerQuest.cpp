@@ -1398,6 +1398,16 @@ bool Player::TakeQuestSourceItem(uint32 questId, bool msg)
     return true;
 }
 
+//fullscale
+bool Player::GetAccountQuestRewardStatus(uint32 quest_id) const
+{
+    uint32 accountId = GetSession()->GetAccountId();
+    QueryResult result = LoginDatabase.Query("SELECT `quest` FROM `account_bound_quests` WHERE `account_id` = {} AND `quest` = {}", accountId, quest_id);
+
+    return result != nullptr;
+}
+//end fullscale
+
 bool Player::GetQuestRewardStatus(uint32 quest_id) const
 {
     Quest const* qInfo = sObjectMgr->GetQuestTemplate(quest_id);

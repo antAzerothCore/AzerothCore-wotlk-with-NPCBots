@@ -3361,6 +3361,13 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
 
     int32 skillDiff = attackerWeaponSkill - int32(victim->GetMaxSkillValueForLevel(this));
 
+    //fullscale
+    // Cap skillDiff to 0 (0 levels) - prevents gray mobs from having increased missing chance.
+    // Tweaked for open world scaling
+    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && skillDiff < 0)
+        skillDiff = 0;
+    //end fullscale
+
     uint32 roll = urand (0, 10000);
 
     uint32 missChance = uint32(MeleeSpellMissChance(victim, attType, skillDiff, spellInfo->Id) * 100.0f);
@@ -3536,6 +3543,13 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     if (GetTypeId() == TYPEID_UNIT && ToCreature()->IsTrigger())
         thisLevel = std::max<int32>(thisLevel, spellInfo->SpellLevel);
     int32 levelDiff = int32(victim->getLevelForTarget(this)) - thisLevel;
+
+    //fullscale
+    // Cap levelDiff to 0 - prevents gray mobs from having increased missing chance.
+    // Tweaked for open world scaling
+    if ((victim->GetTypeId() == TYPEID_PLAYER || victim->IsHunterPet() || victim->IsPet() || victim->IsSummon()) && levelDiff > 0)
+        levelDiff = 0;
+    //end fullscale
 
     int32 MISS_CHANCE_MULTIPLIER;
     if (sWorld->getBoolConfig(CONFIG_MISS_CHANCE_MULTIPLIER_ONLY_FOR_PLAYERS) && GetTypeId() != TYPEID_PLAYER) // keep it as it was originally (7 and 11)
@@ -9557,8 +9571,10 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
                 else if (auraSpellInfo->Id == 71761) // Deep Freeze Immunity State (only permanent)
                 {
                     Creature* creature = victim->ToCreature();
-                    if (!creature || !creature->HasMechanicTemplateImmunity(1 << (MECHANIC_STUN - 1)))
+                    //fullscale
+                    if (!creature || !creature->HasMechanicImmunity(1 << (MECHANIC_STUN - 1)))
                         return false;
+                    //end fullscale
                 }
                 break;
             case SPELLFAMILY_WARLOCK:
@@ -15326,8 +15342,9 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     if (creature
         && !IsPet()
         && !(IsControlledByPlayer() && IsVehicle())
-        && !(creature->HasMechanicTemplateImmunity(MECHANIC_SNARE))
-        && !(creature->IsDungeonBoss()))
+        //fullscale
+        && !creature->HasMechanicImmunity(MECHANIC_SNARE))
+        //end fullscale
     {
         // 1.6% for each % under 30.
         // use min(0, health-30) so that we don't boost mobs above 30.
@@ -15594,6 +15611,13 @@ float Unit::ApplyTotalThreatModifier(float fThreat, SpellSchoolMask schoolMask)
             fThreat *= THREAT_MODIFIER_TANK_BOT;
     }
     //end npcbot_plus
+
+    //fullscale
+    if (creature && creature->IsPet()) {
+        float THREAT_MODIFIER_PET = 1.5f;
+        fThreat *= THREAT_MODIFIER_PET;
+    }
+    //end fullscale
 
     if (!HasAuraType(SPELL_AURA_MOD_THREAT) || fThreat < 0)
         return fThreat;
@@ -19138,12 +19162,15 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     //end npcbot
 
     bool isRewardAllowed = true;
+    //fullscale
+    /* Disabled damage requirement for loot reward
     if (creature)
     {
         isRewardAllowed = creature->IsDamageEnoughForLootingAndReward();
         if (!isRewardAllowed)
             creature->SetLootRecipient(nullptr);
     }
+    //end fullscale */
 
     // pussywizard: remade this if section (player is on the same map
     if (isRewardAllowed && creature)

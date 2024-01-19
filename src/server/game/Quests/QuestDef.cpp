@@ -205,6 +205,8 @@ uint32 Quest::XPValue(uint8 playerLevel) const
         return 0;
     }
 
+    //fullscale
+    /* Disabled XP reduction for gray quests
     int32 diffFactor = 2 * (quest_level - playerLevel) + 20;
     if (diffFactor < 1)
     {
@@ -216,6 +218,9 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     }
 
     uint32 xp = diffFactor * xpentry->Exp[RewardXPDifficulty] / 10;
+    */
+    uint32 xp = xpentry->Exp[RewardXPDifficulty];
+    //end fullscale
     if (xp <= 100)
     {
         xp = 5 * ((xp + 2) / 5);
@@ -232,6 +237,16 @@ uint32 Quest::XPValue(uint8 playerLevel) const
     {
         xp = 50 * ((xp + 25) / 50);
     }
+
+    //fullscale
+    // Scaling Factor for high level players
+    float diffFactor = 1.0f;
+    uint8 GrayLevel = Acore::XP::GetGrayLevel(playerLevel);
+    if (quest_level < GrayLevel)
+        diffFactor = (float)GrayLevel / quest_level;
+        
+    xp *= diffFactor;
+    //end fullscale
 
     return xp;
 }
