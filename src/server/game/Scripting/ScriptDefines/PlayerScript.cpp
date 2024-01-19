@@ -1698,6 +1698,16 @@ bool ScriptMgr::AnticheatCheckMovementInfo(Player* player, MovementInfo const& m
     return true;
 }
 
+//fullscale
+void ScriptMgr::ModifyQuestGiverStatus(Player* player, QuestGiverStatus& result, uint32 questId)
+{
+    ExecuteScript<PlayerScript>([&](PlayerScript* script)
+    {
+        script->ModifyQuestGiverStatus(player, result, questId);
+    });
+}
+//end fullscale
+
 PlayerScript::PlayerScript(const char* name)
     : ScriptObject(name)
 {

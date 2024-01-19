@@ -529,6 +529,10 @@ public:
      */
     [[nodiscard]] virtual bool OnCanPlayerFlyInZone(Player* /*player*/, uint32 /*mapId*/, uint32 /*zoneId*/, SpellInfo const* /*bySpell*/) { return true; }
 
+    //fullscale
+    virtual void ModifyQuestGiverStatus(Player* /*player*/, QuestGiverStatus& /*questGiverStatus*/, uint32 /*questId*/) { };
+    //end fullscale
+
     // Passive Anticheat System
     virtual void AnticheatSetCanFlybyServer(Player* /*player*/, bool /*apply*/) { }
     virtual void AnticheatSetUnderACKmount(Player* /*player*/) { }
