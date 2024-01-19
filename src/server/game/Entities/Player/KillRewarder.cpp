@@ -121,7 +121,11 @@ void KillRewarder::_InitGroupData()
                 }
         // 2.6. _isFullXP - flag identifying that for all group members victim is not gray,
         //      so 100% XP will be rewarded (50% otherwise).
-        _isFullXP = _maxNotGrayMember && (_maxLevel == _maxNotGrayMember->GetLevel());
+        //fullscale
+        //_isFullXP = _maxNotGrayMember && (_maxLevel == _maxNotGrayMember->GetLevel());
+        // disabled here to allow different levels to party efficiently with level scaling
+        _isFullXP = true;
+        //end fullscale
     }
     else
         _count = 1;
@@ -157,15 +161,10 @@ void KillRewarder::_RewardXP(Player* player, float rate)
     if (_group)
     {
         // 4.2.1. If player is in group, adjust XP:
-        //        * set to 0 if player's level is more than maximum level of not gray member;
-        //        * cut XP in half if _isFullXP is false.
-        if (_maxNotGrayMember && player->IsAlive() &&
-            _maxNotGrayMember->GetLevel() >= player->GetLevel())
-            xp = _isFullXP ?
-                 uint32(xp * rate) :             // Reward FULL XP if all group members are not gray.
-                 uint32(xp * rate / 2) + 1;      // Reward only HALF of XP if some of group members are gray.
-        else
-            xp = 0;
+        //fullscale
+        //        * To support open world scaling, always reward full XP.
+        xp = uint32(xp * rate); // Reward FULL XP as if no group members are gray.
+        //end fullscale
     }
     if (xp)
     {
@@ -227,7 +226,9 @@ void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
     // Give reputation and kill credit only in PvE.
     if (!_isPvP || _isBattleGround)
     {
-        float xpRate = _group ? _groupRate * float(player->GetLevel()) / _aliveSumLevel : /*Personal rate is 100%.*/ 1.0f; // Group rate depends on the sum of levels.
+        //fullscale
+        float xpRate = _group ? _groupRate / _count : /*Personal rate is 100%.*/ 1.0f; // Group rate depends on the number of players
+        //end fullscale
         sScriptMgr->OnRewardKillRewarder(player, isDungeon, xpRate);                                              // Personal rate is 100%.
 
         if (_xp)
@@ -248,10 +249,11 @@ void KillRewarder::_RewardGroup()
 {
     if (_maxLevel)
     {
-        if (_maxNotGrayMember)
-            // 3.1.1. Initialize initial XP amount based on maximum level of group member,
-            //        for whom victim is not gray.
-            _InitXP(_maxNotGrayMember);
+        //fullscale
+        // 3.1.1. Initialize initial XP amount based on the killer
+        _InitXP(_killer);
+        //end fullscale
+
         // To avoid unnecessary calculations and calls,
         // proceed only if XP is not ZERO or player is not on battleground
         // (battleground rewards only XP, that's why).
