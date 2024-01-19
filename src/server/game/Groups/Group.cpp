@@ -1003,9 +1003,14 @@ void Group::Disband(bool hideDestroy /* = false */)
             instanceId = player->GetInstanceId();
         }
 
-        _homebindIfInstance(player);
-        if (!isBGGroup() && !isBFGroup())
-            Player::ResetInstances(citr->guid, INSTANCE_RESET_GROUP_LEAVE, false);
+        //npcbot_plus
+        if (!IsLeader(citr->guid))
+        {
+            _homebindIfInstance(player);
+            if (!isBGGroup() && !isBFGroup())
+                Player::ResetInstances(citr->guid, INSTANCE_RESET_GROUP_LEAVE, false);
+        }
+        //end npcbot_plus
 
         if (!player)
             continue;
