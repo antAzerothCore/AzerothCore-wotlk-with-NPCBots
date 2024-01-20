@@ -65,15 +65,7 @@ uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels conten
             baseGain = (pl_level * 5 + nBaseExp) * (ZD + mob_level - pl_level) / ZD;
         }
         else
-        //fullscale
-        /* Disable XP reduction for gray mobs */
-            //baseGain = 0;
-        {
-            // Reward XP for gray mob kills based on the following formula (for open world level scaling)
-            uint8 ZD = GetZeroDifference(pl_level);
-            baseGain = (pl_level * 5 + nBaseExp) * (float)mob_level/(ZD+mob_level)*0.66f;
-        }
-        //end fullscale
+            baseGain = 0;
     }
 
     //fullscale
