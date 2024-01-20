@@ -15585,9 +15585,9 @@ float Unit::ApplyTotalThreatModifier(float fThreat, SpellSchoolMask schoolMask)
         float THREAT_MODIFIER_TANK_BOT = 1.0f;
 
         if (creature->GetBotAI() && (creature->GetBotAI()->IsTank() || creature->GetBotAI()->IsOffTank()))
-            fThreat *= THREAT_MODIFIER_DPS_BOT;
-        else
             fThreat *= THREAT_MODIFIER_TANK_BOT;
+        else
+            fThreat *= THREAT_MODIFIER_DPS_BOT;
     }
     //end npcbot_plus
 
