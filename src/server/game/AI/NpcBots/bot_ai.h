@@ -66,6 +66,7 @@ class bot_ai : public CreatureAI
         //void LeavingWorld() override { }
         void OnSpellStart(SpellInfo const* spellInfo) override { OnBotSpellStart(spellInfo); }
         bool CanRespawn() override { return IAmFree(); }
+        void OnDeath(Unit* attacker = nullptr);
 
         virtual void OnBotSummon(Creature* /*summon*/) {}
         virtual void OnBotDespawn(Creature* /*summon*/) {}
@@ -208,6 +209,7 @@ class bot_ai : public CreatureAI
         uint8 GetPlayerRace() const;
 
         bool IsTempBot() const;
+        bool CanAppearInWorld() const;
 
         void SetShouldUpdateStats() { shouldUpdateStats = true; }
         void UpdateHealth() { doHealth = true; }
@@ -285,6 +287,9 @@ class bot_ai : public CreatureAI
 
         uint32 GetEngageTimer() const { return _engageTimer; }
         void ResetEngageTimer(uint32 delay);
+
+        uint8 GetHealHpPctThreshold() const { return _healHpPctThreshold; }
+        void SetHealHpPctThreshold(uint8 threshold) { _healHpPctThreshold = threshold; }
 
         bool HasSpell(uint32 basespell) const;
         uint32 GetBaseSpell(std::string_view spell_name, LocaleConstant locale) const;
@@ -370,7 +375,7 @@ class bot_ai : public CreatureAI
         void ResetSpellCooldown(uint32 basespell) { SetSpellCooldown(basespell, 0); }
         void RemoveSpell(uint32 basespell);
         //void RemoveAllSpells();
-        void EnableAllSpells();
+        void EnableAllSpells(bool save);
         void SpellTimers(uint32 diff);
         static uint32 RaceSpellForClass(uint8 myrace, uint8 myclass);
 
@@ -539,6 +544,8 @@ class bot_ai : public CreatureAI
         uint32 GetItemSpellCooldown(uint32 spellid) const;
         void CheckUsableItems(uint32 diff);
 
+        uint32 GetLastWMOArea() const { return _lastWMOAreaId; }
+
         Player* master;
         Player* _prevRRobin;
         Unit* opponent;
@@ -558,6 +565,7 @@ class bot_ai : public CreatureAI
 
     private:
         void FindMaster();
+        uint32 CalculateOwnershipCheckTime();
 
         void _OnHealthUpdate() const;
         void _OnManaUpdate() const;
@@ -616,6 +624,7 @@ class bot_ai : public CreatureAI
         bool _canUseRanged() const;
         bool _canUseRelic() const;
         bool _canEquip(ItemTemplate const* newProto, uint8 slot, bool ignoreItemLevel, Item const* newItem = nullptr) const;
+        void _removeEquipment(uint8 slot);
         bool _unequip(uint8 slot, ObjectGuid receiver);
         bool _equip(uint8 slot, Item* newItem, ObjectGuid receiver);
         bool _resetEquipment(uint8 slot, ObjectGuid receiver);
@@ -672,7 +681,8 @@ class bot_ai : public CreatureAI
 
         //timers
         uint32 _reviveTimer, _powersTimer, _chaseTimer, _engageTimer, _potionTimer;
-        uint32 lastdiff, checkAurasTimer, checkMasterTimer, roleTimer, ordersTimer, regenTimer, _updateTimerMedium, _updateTimerEx1;
+        uint32 lastdiff, checkAurasTimer, checkMasterTimer, roleTimer, ordersTimer, regenTimer, _updateTimerMedium, _updateTimerEx1, _updateTimerEx2;
+        uint32 _checkOwershipTimer;
         uint32 _moveBehindTimer;
         uint32 _wmoAreaUpdateTimer;
         uint32 waitTimer;
@@ -686,8 +696,10 @@ class bot_ai : public CreatureAI
         uint32 _saveDisabledSpellsTimer;
 
         uint32 _lastZoneId, _lastAreaId, _lastWMOAreaId;
+        uint32 _selfrez_spell_id;
 
         uint8 _unreachableCount, _jumpCount, _evadeCount;
+        uint8 _healHpPctThreshold;
         uint32 _roleMask;
         uint32 _usableItemSlotsMask;
         ObjectGuid::LowType _ownerGuid;
@@ -699,6 +711,7 @@ class bot_ai : public CreatureAI
         bool _evadeMode;
         bool _atHome;
         bool _duringTeleport;
+        bool _canAppearInWorld;
 
         //wandering bots
         bool _wanderer;
