@@ -240,7 +240,7 @@ void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
         //fullscale
         float xpRate = _group ? _groupRate / _count : /*Personal rate is 100%.*/ 1.0f; // Group rate depends on the number of players
         //end fullscale
-        sScriptMgr->OnRewardKillRewarder(player, isDungeon, xpRate);                                              // Personal rate is 100%.
+        sScriptMgr->OnRewardKillRewarder(player, this, isDungeon, xpRate);                                              // Personal rate is 100%.
 
         if (_xp)
         {

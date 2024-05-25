@@ -898,15 +898,12 @@ bool ScriptMgr::AnticheatCheckMovementInfo(Player* player, MovementInfo const& m
 //fullscale
 void ScriptMgr::ModifyQuestGiverStatus(Player* player, QuestGiverStatus& result, uint32 questId)
 {
-    ExecuteScript<PlayerScript>([&](PlayerScript* script)
-    {
-        script->ModifyQuestGiverStatus(player, result, questId);
-    });
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_MODIFY_QUESTGIVER_STATUS, ModifyQuestGiverStatus(player, result, questId));
 }
 //end fullscale
 
-PlayerScript::PlayerScript(const char* name)
-    : ScriptObject(name)
+PlayerScript::PlayerScript(const char* name, std::vector<uint16> enabledHooks)
+    : ScriptObject(name, PLAYERHOOK_END)
 {
     // If empty - enable all available hooks.
     if (enabledHooks.empty())
