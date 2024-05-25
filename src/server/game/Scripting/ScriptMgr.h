@@ -331,6 +331,7 @@ public: /* PlayerScript */
     void OnPlayerSpellCast(Player* player, Spell* spell, bool skipCheck);
     void OnPlayerLogin(Player* player);
     void OnPlayerLoadFromDB(Player* player);
+    void OnBeforePlayerLogout(Player* player);
     void OnPlayerLogout(Player* player);
     void OnPlayerCreate(Player* player);
     void OnPlayerSave(Player* player);
@@ -398,11 +399,13 @@ public: /* PlayerScript */
     bool CanSendMail(Player* player, ObjectGuid receiverGuid, ObjectGuid mailbox, std::string& subject, std::string& body, uint32 money, uint32 COD, Item* item);
     void PetitionBuy(Player* player, Creature* creature, uint32& charterid, uint32& cost, uint32& type);
     void PetitionShowList(Player* player, Creature* creature, uint32& CharterEntry, uint32& CharterDispayID, uint32& CharterCost);
-    void OnRewardKillRewarder(Player* player, bool isDungeon, float& rate);
+    void OnRewardKillRewarder(Player* player, KillRewarder* rewarder, bool isDungeon, float& rate);
     bool CanGiveMailRewardAtGiveLevel(Player* player, uint8 level);
     void OnDeleteFromDB(CharacterDatabaseTransaction trans, uint32 guid);
     bool CanRepopAtGraveyard(Player* player);
+    std::optional<bool> OnPlayerIsClass(Player const* player, Classes playerClass, ClassContext context);
     void OnGetMaxSkillValue(Player* player, uint32 skill, int32& result, bool IsPure);
+    bool OnPlayerHasActivePowerType(Player const* player, Powers power);
     void OnUpdateGatheringSkill(Player* player, uint32 skillId, uint32 currentLevel, uint32 gray, uint32 green, uint32 yellow, uint32& gain);
     void OnUpdateCraftingSkill(Player* player, SkillLineAbilityEntry const* skill, uint32 currentLevel, uint32& gain);
     bool OnUpdateFishingSkill(Player* player, int32 skill, int32 zone_skill, int32 chance, int32 roll);
@@ -411,6 +414,8 @@ public: /* PlayerScript */
     void OnVictimRewardAfter(Player* player, Player* victim, uint32& killer_title, uint32& victim_rank, float& honor_f);
     void OnCustomScalingStatValueBefore(Player* player, ItemTemplate const* proto, uint8 slot, bool apply, uint32& CustomScalingStatValue);
     void OnCustomScalingStatValue(Player* player, ItemTemplate const* proto, uint32& statType, int32& val, uint8 itemProtoStatNumber, uint32 ScalingStatValue, ScalingStatValuesEntry const* ssv);
+    void OnApplyItemModsBefore(Player* player, uint8 slot, bool apply, uint8 itemProtoStatNumber, uint32 statType, int32& val);
+    void OnApplyEnchantmentItemModsBefore(Player* player, Item* item, EnchantmentSlot slot, bool apply, uint32 enchant_spell_id, uint32& enchant_amount);
     bool CanArmorDamageModifier(Player* player);
     void OnGetFeralApBonus(Player* player, int32& feral_bonus, int32 dpsMod, ItemTemplate const* proto, ScalingStatValuesEntry const* ssv);
     bool CanApplyWeaponDependentAuraDamageMod(Player* player, Item* item, WeaponAttackType attackType, AuraEffect const* aura, bool apply);
@@ -439,6 +444,7 @@ public: /* PlayerScript */
     bool CanJoinLfg(Player* player, uint8 roles, lfg::LfgDungeonSet& dungeons, const std::string& comment);
     bool CanEnterMap(Player* player, MapEntry const* entry, InstanceTemplate const* instance, MapDifficulty const* mapDiff, bool loginCheck);
     bool CanInitTrade(Player* player, Player* target);
+    bool CanSetTradeItem(Player* player, Item* tradedItem, uint8 tradeSlot);
     void OnSetServerSideVisibility(Player* player, ServerSideVisibilityType& type, AccountTypes& sec);
     void OnSetServerSideVisibilityDetect(Player* player, ServerSideVisibilityType& type, AccountTypes& sec);
     void OnPlayerResurrect(Player* player, float restore_percent, bool applySickness);
@@ -468,6 +474,7 @@ public: /* PlayerScript */
 
 public: /* AccountScript */
     void OnAccountLogin(uint32 accountId);
+    void OnBeforeAccountDelete(uint32 accountId);
     void OnLastIpUpdate(uint32 accountId, std::string ip);
     void OnFailedAccountLogin(uint32 accountId);
     void OnEmailChange(uint32 accountId);
@@ -545,7 +552,8 @@ public: /* UnitScript */
     bool IsNeedModHealPercent(Unit const* unit, AuraEffect* auraEff, float& doneTotalMod, SpellInfo const* spellProto);
     bool CanSetPhaseMask(Unit const* unit, uint32 newPhaseMask, bool update);
     bool IsCustomBuildValuesUpdate(Unit const* unit, uint8 updateType, ByteBuffer& fieldBuffer, Player const* target, uint16 index);
-    bool OnBuildValuesUpdate(Unit const* unit, uint8 updateType, ByteBuffer& fieldBuffer, Player* target, uint16 index);
+    bool ShouldTrackValuesUpdatePosByIndex(Unit const* unit, uint8 updateType, uint16 index);
+    void OnPatchValuesUpdate(Unit const* unit, ByteBuffer& valuesUpdateBuf, BuildValuesCachePosPointers& posPointers, Player* target);
     void OnUnitUpdate(Unit* unit, uint32 diff);
     void OnDisplayIdChange(Unit* unit, uint32 displayId);
     void OnUnitEnterEvadeMode(Unit* unit, uint8 why);
@@ -706,29 +714,46 @@ public:
     typedef std::map<uint32, TScript*> ScriptMap;
     typedef typename ScriptMap::iterator ScriptMapIterator;
 
-    typedef std::vector<TScript*> ScriptVector;
+    typedef std::vector<std::pair<TScript*,std::vector<uint16>>> ScriptVector;
     typedef typename ScriptVector::iterator ScriptVectorIterator;
+
+    typedef std::vector<std::vector<TScript*>> EnabledHooksVector;
+    typedef typename EnabledHooksVector::iterator EnabledHooksVectorIterator;
 
     // The actual list of scripts. This will be accessed concurrently, so it must not be modified
     // after server startup.
     static ScriptMap ScriptPointerList;
     // After database load scripts
     static ScriptVector ALScripts;
+    // The list of hook types with the list of enabled scripts for this specific hook.
+    // With this approach, we wouldn't call all available hooks in case if we override just one hook.
+    static EnabledHooksVector EnabledHooks;
 
-    static void AddScript(TScript* const script)
+    static void InitEnabledHooksIfNeeded(uint16 totalAvailableHooks)
+    {
+        EnabledHooks.resize(totalAvailableHooks);
+    }
+
+    static void AddScript(TScript* const script, std::vector<uint16> enabledHooks = {})
     {
         ASSERT(script);
 
         if (!_checkMemory(script))
             return;
 
+        if (EnabledHooks.empty())
+            InitEnabledHooksIfNeeded(script->GetTotalAvailableHooks());
+
         if (script->isAfterLoadScript())
         {
-            ALScripts.push_back(script);
+            ALScripts.emplace_back(script, std::move(enabledHooks));
         }
         else
         {
             script->checkValidity();
+
+            for (uint16 v : enabledHooks)
+                EnabledHooks[v].emplace_back(script);
 
             // We're dealing with a code-only script; just add it.
             ScriptPointerList[_scriptIdCounter++] = script;
@@ -738,9 +763,9 @@ public:
 
     static void AddALScripts()
     {
-        for(ScriptVectorIterator it = ALScripts.begin(); it != ALScripts.end(); ++it)
+        for (ScriptVectorIterator it = ALScripts.begin(); it != ALScripts.end(); ++it)
         {
-            TScript* const script = *it;
+            TScript* const script = (*it).first;
 
             script->checkValidity();
 
@@ -772,6 +797,14 @@ public:
                     // If the script is already assigned -> delete it!
                     if (oldScript)
                     {
+                        for (auto& vIt : EnabledHooks)
+                            for (size_t i = 0; i < vIt.size(); ++i)
+                                if (vIt[i] == oldScript)
+                                {
+                                    vIt.erase(vIt.begin() + i);
+                                    break;
+                                }
+
                         delete oldScript;
                     }
 
@@ -794,6 +827,9 @@ public:
             }
             else
             {
+                for (uint16 v : (*it).second)
+                    EnabledHooks[v].emplace_back(script);
+
                 // We're dealing with a code-only script; just add it.
                 ScriptPointerList[_scriptIdCounter++] = script;
                 sScriptMgr->IncreaseScriptCount();
@@ -838,7 +874,8 @@ private:
 
 // Instantiate static members of ScriptRegistry.
 template<class TScript> std::map<uint32, TScript*> ScriptRegistry<TScript>::ScriptPointerList;
-template<class TScript> std::vector<TScript*> ScriptRegistry<TScript>::ALScripts;
+template<class TScript> std::vector<std::pair<TScript*,std::vector<uint16>>> ScriptRegistry<TScript>::ALScripts;
+template<class TScript> std::vector<std::vector<TScript*>> ScriptRegistry<TScript>::EnabledHooks;
 template<class TScript> uint32 ScriptRegistry<TScript>::_scriptIdCounter = 0;
 
 #endif

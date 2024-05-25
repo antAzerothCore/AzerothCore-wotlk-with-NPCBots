@@ -347,7 +347,7 @@ public:
             GetInPosition(force, u);
         }
 
-        void JustEngagedWith(Unit* u) override { TotemsCheckTimer = 0; bot_ai::JustEngagedWith(u); }
+        void JustEngagedWith(Unit* u) override { TotemsCheckTimer = 0; canTremor = false; bot_ai::JustEngagedWith(u); }
         void KilledUnit(Unit* u) override { bot_ai::KilledUnit(u); }
         void EnterEvadeMode(EvadeReason why = EVADE_REASON_OTHER) override { bot_ai::EnterEvadeMode(why); }
         void MoveInLineOfSight(Unit* u) override { bot_ai::MoveInLineOfSight(u); }
@@ -474,19 +474,40 @@ public:
             if (TotemTimer[T_EARTH] <= diff && me->IsInCombat() && !IAmFree() &&
                 IsSpellReady(TREMOR_TOTEM_1, diff, false) && _totems[T_EARTH].second._type != BOT_TOTEM_TREMOR)
             {
-                //Tremor no cd, party members only
-                uint8 count = 0;
-                for (Unit const* member : members)
+                //Tremor no cd
+                if (Unit const* victim = me->GetVictim())
                 {
-                    if (me->GetMap() != member->FindMap() || !member->InSamePhase(me) ||
-                        !member->IsAlive() || me->GetDistance(member) > 20 ||
-                        (member->IsPlayer() ? member->ToPlayer()->GetSubGroup() : member->ToCreature()->GetSubGroup()) != subgr ||
-                        (member->IsNPCBot() && member->ToCreature()->IsTempBot()) ||
-                        !member->HasAuraWithMechanic((1<<MECHANIC_CHARM)|(1<<MECHANIC_FEAR)|(1<<MECHANIC_SLEEP)))
-                        continue;
-                    ++count;
+                    if (Spell const* vspell = victim->GetCurrentSpell(CURRENT_GENERIC_SPELL))
+                    {
+                        if (vspell->m_targets.GetUnitTargetGUID() == me->GetGUID())
+                        {
+                            SpellInfo const* vspellInfo = vspell->GetSpellInfo();
+                            static const std::array<uint32, 3> TremorMechanics = { MECHANIC_FEAR, MECHANIC_CHARM, MECHANIC_SLEEP };
+                            static const auto is_tremor_effect = [](SpellEffectInfo const& effect) {  return effect.IsAura(SPELL_AURA_MOD_FEAR) || effect.IsAura(SPELL_AURA_MOD_CHARM); };
+                            if (std::find(TremorMechanics.cbegin(), TremorMechanics.cend(), vspellInfo->Mechanic) != TremorMechanics.cend() ||
+                                std::any_of(vspellInfo->Effects.cbegin(), vspellInfo->Effects.cend(), is_tremor_effect))
+                            {
+                                canTremor = true;
+                            }
+                        }
+                    }
                 }
-                if (count >= (1 + 1*(!!(mask & BOT_TOTEM_MASK_MY_TOTEM_EARTH))))
+                if (!canTremor)
+                {
+                    uint8 count = 0;
+                    for (Unit const* member : members)
+                    {
+                        if (me->GetMap() != member->FindMap() || !member->InSamePhase(me) ||
+                            !member->IsAlive() || me->GetDistance(member) > 20 ||
+                            (member->IsPlayer() ? member->ToPlayer()->GetSubGroup() : member->ToCreature()->GetSubGroup()) != subgr ||
+                            (member->IsNPCBot() && member->ToCreature()->IsTempBot()) ||
+                            !member->HasAuraWithMechanic((1<<MECHANIC_CHARM)|(1<<MECHANIC_FEAR)|(1<<MECHANIC_SLEEP)))
+                            continue;
+                        ++count;
+                    }
+                    canTremor = count >= (1 + 1*(!!(mask & BOT_TOTEM_MASK_MY_TOTEM_EARTH)));
+                }
+                if (canTremor)
                 {
                     if (doCast(me, GetSpell(TREMOR_TOTEM_1), CotE ? TRIGGERED_CAST_DIRECTLY : TRIGGERED_NONE))
                         if (!CotE)
@@ -687,8 +708,7 @@ public:
             {
                 //WATERmain : manaspring
                 uint32 MSpring = GetSpell(MANA_SPRING_TOTEM_1); //tripple check
-                if (MSpring && (me->IsInCombat() || !master->isMoving()) &&
-                    (!(mask & BOT_TOTEM_MASK_MANA_SPRING) || idMap[MANA_SPRING_TOTEM_1] < MSpring))
+                if (MSpring && (me->IsInCombat() || !master->isMoving()) && !(mask & BOT_TOTEM_MASK_MANA_SPRING))
                 {
                     //no cd
                     bool cast = false;
@@ -1271,6 +1291,8 @@ public:
 
             static const auto can_affect = [](WorldObject const* o, Unit const* unit)
             {
+                if (!unit->IsAlive())
+                    return false;
                 AuraEffect const* eShield = unit->GetAuraEffect(SPELL_AURA_REDUCE_PUSHBACK, SPELLFAMILY_SHAMAN, 0x0, 0x400, 0x0);
                 return (!eShield || eShield->GetBase()->GetCharges() < 5 || eShield->GetBase()->GetDuration() < 30000) && o->GetDistance(unit) < 40 && (unit->IsInCombat() || !unit->isMoving());
             };
@@ -1347,6 +1369,8 @@ public:
             if (!target || !target->IsAlive() || target->GetShapeshiftForm() == FORM_SPIRITOFREDEMPTION || me->GetDistance(target) > 40)
                 return false;
             uint8 hp = GetHealthPCT(target);
+            if (hp > GetHealHpPctThreshold())
+                return false;
             bool pointed = IsPointedHealTarget(target);
             if (hp > 90 && !(pointed && me->GetMap()->IsRaid()) &&
                 (!target->IsInCombat() || target->getAttackers().empty() || !IsTank(target) || !me->GetMap()->IsRaid()))
@@ -2746,12 +2770,18 @@ public:
         uint32 mhEnchant, ohEnchant;
         bool needChooseMHEnchant, needChooseOHEnchant;
 
+        bool canTremor;
+
         typedef std::unordered_map<uint32 /*baseId*/, int32 /*amount*/> HealMap;
         HealMap _heals;
 
         uint32 _getTotemsMask(std::map<uint32 /*type*/, uint32 /*curId*/>& idMap) const
         {
             uint32 mask = 0;
+
+            //Blessing of Wisdom doesn't stack with Mana Spring Totem
+            if (me->GetAuraEffect(SPELL_AURA_MOD_POWER_REGEN, SPELLFAMILY_PALADIN, 0x10000, 0x0, 0x0))
+                mask |= BOT_TOTEM_MASK_MANA_SPRING;
 
             Unit* cre;
             uint32 sumonSpell;

@@ -853,12 +853,12 @@ public:
         {
             if (p->getPowerType() != POWER_MANA)
                 return true;
-            if (p->getClass() == CLASS_HUNTER)
+            if (p->IsClass(CLASS_HUNTER))
                 return true;
             uint8 maxIndex = p->GetMostPointsTalentTree();
-            if ((p->getClass() == CLASS_PALADIN && maxIndex >= 1) || (p->getClass() == CLASS_SHAMAN && maxIndex == 1) || (p->getClass() == CLASS_DRUID && maxIndex == 1))
+            if ((p->IsClass(CLASS_PALADIN) && maxIndex >= 1) || (p->IsClass(CLASS_SHAMAN) && maxIndex == 1) || (p->IsClass(CLASS_DRUID) && maxIndex == 1))
                 return true;
-            if (_removeHealers == ((p->getClass() == CLASS_DRUID && maxIndex == 2) || (p->getClass() == CLASS_PALADIN && maxIndex == 0) || (p->getClass() == CLASS_PRIEST && maxIndex <= 1) || (p->getClass() == CLASS_SHAMAN && maxIndex == 2)))
+            if (_removeHealers == ((p->IsClass(CLASS_DRUID) && maxIndex == 2) || (p->IsClass(CLASS_PALADIN) && maxIndex == 0) || (p->IsClass(CLASS_PRIEST) && maxIndex <= 1) || (p->IsClass(CLASS_SHAMAN) && maxIndex == 2)))
                 return true;
 
             return false;
@@ -1123,11 +1123,21 @@ class SindragosaIceTombCheck
 public:
     bool operator()(Unit* unit) const
     {
+        //npcbot
+        if (!unit->IsPlayer())
+            return true;
+        //end npcbot
+
         return unit->HasAura(SPELL_FROST_IMBUED_BLADE) || unit->IsImmunedToDamageOrSchool(SPELL_SCHOOL_MASK_ALL);
     }
 
     bool operator()(WorldObject* object) const
     {
+        //npcbot
+        if (!object->IsPlayer())
+            return true;
+        //end npcbot
+
         return object->ToUnit() && (object->ToUnit()->HasAura(SPELL_FROST_IMBUED_BLADE) || object->ToUnit()->IsImmunedToDamageOrSchool(SPELL_SCHOOL_MASK_ALL));
     }
 };
@@ -1180,6 +1190,10 @@ public:
 
         void FilterTargets(std::list<WorldObject*>& unitList)
         {
+            //npcbot
+            unitList.remove_if(SindragosaIceTombCheck());
+            //end npcbot
+
             unitList.remove_if(Acore::UnitAuraCheck(true, GetSpellInfo()->Id));
             targetList.clear();
             targetList = unitList;
