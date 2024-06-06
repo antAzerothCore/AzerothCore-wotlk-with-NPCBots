@@ -2,6 +2,7 @@
 #include "BattlegroundQueue.h"
 #include "bot_ai.h"
 #include "botdatamgr.h"
+#include "botlog.h"
 #include "botmgr.h"
 #include "botspell.h"
 #include "botwanderful.h"
@@ -10,6 +11,7 @@
 #include "Creature.h"
 #include "DatabaseEnv.h"
 #include "DBCStores.h"
+#include "GameTime.h"
 #include "GroupMgr.h"
 #include "Item.h"
 #include "Log.h"
@@ -153,7 +155,7 @@ public:
     void Abort(uint64 /*e_time*/) override { AbortMe(); }
 };
 
-void SpawnWandererBot(uint32 bot_id, WanderNode const* spawnLoc, NpcBotRegistry* registry)
+static void SpawnWandererBot(uint32 bot_id, WanderNode const* spawnLoc, NpcBotRegistry* registry)
 {
     CreatureTemplate const& bot_template = _botsWanderCreatureTemplates.at(bot_id);
     //npcbot_plus
@@ -965,6 +967,13 @@ void BotDataMgr::LoadNpcBotGearStorage()
     } while (result->NextRow());
 
     LOG_INFO("server.loading", ">> Loaded {} NPCBot stored items for {} bot owners in {} ms", count, uint32(player_guids.size()), GetMSTimeDiffToNow(oldMSTime));
+}
+
+void BotDataMgr::DeleteOldLogs()
+{
+    uint32 month_cutoff = static_cast<uint32>(GameTime::GetGameTime().count() - static_cast<time_t>(BOT_LOG_KEEP_DAYS) * DAY);
+    CharacterDatabase.Execute("DELETE FROM `characters_npcbot_logs` WHERE timestamp IS NOT NULL AND timestamp < FROM_UNIXTIME({})", month_cutoff);
+    LOG_INFO("server.loading", "Deleting NPCBot log entries older than {} days...", BOT_LOG_KEEP_DAYS);
 }
 
 void BotDataMgr::LoadWanderMap(bool reload)
@@ -2047,7 +2056,7 @@ bool BotDataMgr::GenerateWanderingBotItemEnchants(Item* item, uint8 slot, uint8 
     //enchants
     SpellInfo const* sInfo;
     std::vector<uint32> valid_enchant_ids;
-    valid_enchant_ids.reserve(1u << 6);
+    valid_enchant_ids.reserve(1ULL << 6);
     switch (spec)
     {
         case BOT_SPEC_PALADIN_HOLY:
@@ -2457,31 +2466,36 @@ void BotDataMgr::UpdateNpcBotData(uint32 owner, uint32 entry, NpcBotDataUpdateTy
 
 void BotDataMgr::UpdateNpcBotDataAll(uint32 playerGuid, NpcBotDataUpdateType updateType, void* data)
 {
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     CharacterDatabasePreparedStatement* bstmt;
+    uint32 newowner = *(uint32*)(data);
     switch (updateType)
     {
         case NPCBOT_UPDATE_OWNER:
-            bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_OWNER_ALL);
-            //"UPDATE characters_npcbot SET owner = ?, hire_time = FROM_UNIXTIME(?) WHERE owner = ?", CONNECTION_ASYNC
-            bstmt->SetData(0, *(uint32*)(data));
-            bstmt->SetData(1, uint64(*(uint32*)(data) ? time(0) : 1ULL));
-            bstmt->SetData(2, playerGuid);
-            CharacterDatabase.Execute(bstmt);
-            //break; //no break: erase transmogs
-        [[fallthrough]];
-        case NPCBOT_UPDATE_TRANSMOG_ERASE:
+            ASSERT(newowner == 0);
+            bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_EQUIP_RESET_ALL);
+            //"UPDATE characters_npcbot SET equipMhEx = 0, equipOhEx = 0, equipRhEx = 0, equipHead = 0, equipShoulders = 0, equipChest = 0, equipWaist = 0, equipLegs = 0, equipFeet = 0, "
+            //"equipWrist = 0, equipHands = 0, equipBack = 0, equipBody = 0, equipFinger1 = 0, equipFinger2 = 0, equipTrinket1 = 0, equipTrinket2 = 0, equipNeck = 0 WHERE owner = ?", CONNECTION_ASYNC
+            bstmt->SetData(0, playerGuid);
+            trans->Append(bstmt);
             bstmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_NPCBOT_TRANSMOG_ALL);
             //"DELETE FROM characters_npcbot_transmog WHERE entry IN (SELECT entry FROM characters_npcbot WHERE owner = ?)", CONNECTION_ASYNC
             bstmt->SetData(0, playerGuid);
-            CharacterDatabase.Execute(bstmt);
+            trans->Append(bstmt);
+            bstmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_NPCBOT_OWNER_ALL);
+            //"UPDATE characters_npcbot SET owner = ?, hire_time = FROM_UNIXTIME(?) WHERE owner = ?", CONNECTION_ASYNC
+            bstmt->SetData(0, newowner);
+            bstmt->SetData(1, uint64(1ULL));
+            bstmt->SetData(2, playerGuid);
+            trans->Append(bstmt);
             break;
-        //case NPCBOT_UPDATE_ROLES:
-        //case NPCBOT_UPDATE_FACTION:
-        //case NPCBOT_UPDATE_EQUIPS:
         default:
             LOG_ERROR("sql.sql", "BotDataMgr:UpdateNpcBotDataAll: unhandled updateType {}", uint32(updateType));
             break;
     }
+
+    if (trans->GetSize() > 0)
+        CharacterDatabase.CommitTransaction(trans);
 }
 
 void BotDataMgr::SaveNpcBotStats(NpcBotStats const* stats)
