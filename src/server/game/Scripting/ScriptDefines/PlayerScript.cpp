@@ -898,7 +898,7 @@ bool ScriptMgr::AnticheatCheckMovementInfo(Player* player, MovementInfo const& m
 //fullscale
 void ScriptMgr::ModifyQuestGiverStatus(Player* player, QuestGiverStatus& result, uint32 questId)
 {
-    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_MODIFY_QUESTGIVER_STATUS, ModifyQuestGiverStatus(player, result, questId));
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_MODIFY_QUESTGIVER_STATUS, script->ModifyQuestGiverStatus(player, result, questId));
 }
 //end fullscale
 
