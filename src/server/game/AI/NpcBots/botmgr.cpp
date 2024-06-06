@@ -1622,8 +1622,6 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
 
     //npcbot_plus
     if (removetype == BOT_REMOVE_LOGOUT || removetype == BOT_REMOVE_DISMISS) {
-        bot->GetBotAI()->ResetBotAI(BOTAI_RESET_MASK_ABANDON_MASTER);
-
         BotDataMgr::ResetNpcBotTransmogData(bot->GetEntry(), false);
         
         // Remove from DB
@@ -1634,6 +1632,7 @@ void BotMgr::RemoveBot(ObjectGuid guid, uint8 removetype)
 
         ObjectGuid ownerGuid = bot->GetBotOwner()->GetGUID();
         BotDataMgr::UpdateNpcBotData(ownerGuid.GetCounter(), bot->GetEntry(), NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UnregisterBot(bot);
     }
     //end npcbot_plus
 }
