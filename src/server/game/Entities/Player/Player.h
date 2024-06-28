@@ -1455,6 +1455,7 @@ public:
     bool SatisfyQuestSeasonal(Quest const* qInfo, bool msg) const;
     bool GiveQuestSourceItem(Quest const* quest);
     bool TakeQuestSourceItem(uint32 questId, bool msg);
+    uint32 CalculateQuestRewardXP(Quest const* quest);
     //fullscale
     [[nodiscard]] bool GetAccountQuestRewardStatus(uint32 quest_id) const;
     //end fullscale
