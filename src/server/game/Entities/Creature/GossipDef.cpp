@@ -454,7 +454,6 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGU
 
         uint32 moneyRew = 0;
         Player* player = _session->GetPlayer();
-        uint8 playerLevel = player ? player->GetLevel() : 0;
         if (player && (player->getLevel() >= sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) || sScriptMgr->ShouldBeRewardedWithMoneyInsteadOfExp(player)))
         {
             moneyRew = quest->GetRewMoneyMaxLevel();
@@ -464,14 +463,7 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGU
         uint32 questXp;
         if (player && !sScriptMgr->ShouldBeRewardedWithMoneyInsteadOfExp(player))
         {
-            questXp = uint32(quest->XPValue(playerLevel) * player->GetQuestRate());
-
-            //fullscale
-            // handle SPELL_AURA_MOD_XP_QUEST_PCT auras
-            Unit::AuraEffectList const& ModXPPctAuras = player->GetAuraEffectsByType(SPELL_AURA_MOD_XP_QUEST_PCT);
-            for (Unit::AuraEffectList::const_iterator i = ModXPPctAuras.begin(); i != ModXPPctAuras.end(); ++i)
-                AddPct(questXp, (*i)->GetAmount());
-            //end fullscale
+            questXp = player->CalculateQuestRewardXP(quest);
         }
         else
         {
@@ -714,7 +706,6 @@ void PlayerMenu::SendQuestGiverOfferReward(Quest const* quest, ObjectGuid npcGUI
 
     uint32 moneyRew = 0;
     Player* player = _session->GetPlayer();
-    uint8 playerLevel = player ? player->GetLevel() : 0;
     if (player && (player->GetLevel() >= sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) || sScriptMgr->ShouldBeRewardedWithMoneyInsteadOfExp(player)))
     {
         moneyRew = quest->GetRewMoneyMaxLevel();
@@ -724,14 +715,7 @@ void PlayerMenu::SendQuestGiverOfferReward(Quest const* quest, ObjectGuid npcGUI
     uint32 questXp;
     if (player && !sScriptMgr->ShouldBeRewardedWithMoneyInsteadOfExp(player))
     {
-        questXp = uint32(quest->XPValue(playerLevel) * player->GetQuestRate());
-
-        //fullscale
-        // handle SPELL_AURA_MOD_XP_QUEST_PCT auras
-        Unit::AuraEffectList const& ModXPPctAuras = player->GetAuraEffectsByType(SPELL_AURA_MOD_XP_QUEST_PCT);
-        for (Unit::AuraEffectList::const_iterator i = ModXPPctAuras.begin(); i != ModXPPctAuras.end(); ++i)
-            AddPct(questXp, (*i)->GetAmount());
-        //end fullscale
+        questXp = player->CalculateQuestRewardXP(quest);
     }
     else
     {
